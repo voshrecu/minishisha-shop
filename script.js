@@ -642,13 +642,11 @@ ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (с
             return true;
         } else {
             console.error('Telegram API error:', result);
-            // Если ошибка, все равно считаем успешным для пользователя
-            return true;
+            return true; // Все равно возвращаем true для пользователя
         }
     } catch (error) {
         console.error('Error sending order to admin:', error);
-        // Даже при ошибке показываем успех пользователю
-        return true;
+        return true; // Все равно возвращаем true для пользователя
     }
 }
 
@@ -941,3 +939,4 @@ function debugApp() {
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
 }
+

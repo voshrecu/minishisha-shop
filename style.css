@@ -1115,4 +1115,49 @@ button:active {
 .btn-copy:active {
     transform: translateY(1px);
 }
+/* Добавляем в конец файла */
+
+/* Стили для отображения скидок */
+.discount-info {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.discount-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.discount-amount {
+    color: var(--success);
+    font-size: 16px;
+}
+
+.item-price-single {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Бейдж для реферальной скидки */
+.referral-badge {
+    background: var(--gradient-accent);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+/* Обновляем стили для корзины */
+.cart-item-info {
+    flex: 1;
+}
+
 

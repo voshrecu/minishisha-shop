@@ -6,11 +6,11 @@ let referrals = [];
 let userDiscount = 0;
 let isReferralUser = false;
 
-// Настройки бота (ЗАМЕНИТЕ НА СВОИ)
+// Настройки бота
 const BOT_CONFIG = {
-    token: '8490335749:AAEKfRAaNKbnGNuEIN2M4rNVGb_BwH07nXk', // Токен от @BotFather
-    adminChatId: '922569313', // Ваш chat_id
-    managerUsername: '@minishishaaa' // Username менеджера
+    token: '8490335749:AAEKfRAaNKbnGNuEIN2M4rNVGb_BwH07nXk',
+    adminChatId: '922569313',
+    managerUsername: '@minishishaaa'
 };
 
 // Товары магазина
@@ -197,7 +197,7 @@ function loadProducts() {
             ${badge}
             <div class="product-header">
                 <img src="${product.image}" alt="${product.name}" class="product-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-                <span class="product-icon">${product.fallbackIcon}</span>
+                <span class="product-icon" style="display: none;">${product.fallbackIcon}</span>
                 <h3>${product.name}</h3>
             </div>
             <p class="product-description">${product.description}</p>
@@ -442,69 +442,146 @@ function showPaymentScreen(orderId, amount) {
     showScreen('payment');
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОПЛАТЫ
+// ОБНОВЛЕННАЯ ФУНКЦИЯ ОПЛАТЫ С ВИЗУАЛЬНЫМ ПОДТВЕРЖДЕНИЕМ
 async function confirmPayment() {
-    if (currentOrder) {
-        // Обновляем статус заказа
-        const order = orders.find(o => o.id === currentOrder.id);
-        if (order) {
-            order.status = 'paid';
-            saveToStorage();
+    const confirmBtn = document.querySelector('.btn-payment-confirm');
+    const originalText = confirmBtn.innerHTML;
+    
+    // Блокируем кнопку и показываем загрузку
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="btn-icon">⏳</span> Подтверждаем...';
+    confirmBtn.style.opacity = '0.7';
+    
+    try {
+        if (currentOrder) {
+            // Обновляем статус заказа
+            const order = orders.find(o => o.id === currentOrder.id);
+            if (order) {
+                order.status = 'paid';
+                saveToStorage();
+            }
+            
+            // Отправляем заказ администратору
+            const sendResult = await sendOrderToAdmin(currentOrder);
+            
+            // Показываем анимацию успеха
+            showPaymentSuccessAnimation();
+            
+            // Очищаем корзину
+            cart = [];
+            
+            // Сбрасываем реферальную скидку после первого заказа
+            if (isReferralUser) {
+                isReferralUser = false;
+                userDiscount = 0;
+                saveToStorage();
+            }
+            
+            // Обновляем интерфейс
+            updateCartUI();
+            
+        } else {
+            throw new Error('Нет активного заказа');
         }
+    } catch (error) {
+        // Восстанавливаем кнопку при ошибке
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+        confirmBtn.style.opacity = '1';
         
-        // Отправляем заказ администратору
-        const sendResult = await sendOrderToAdmin(currentOrder);
-        
-        // Показываем красивое сообщение
-        showSuccessMessage();
-        
-        // Очищаем корзину
-        cart = [];
-        
-        // Сбрасываем реферальную скидку после первого заказа
-        if (isReferralUser) {
-            isReferralUser = false;
-            userDiscount = 0;
-            saveToStorage();
-        }
-        
-        // Обновляем интерфейс
-        updateCartUI();
-        
-    } else {
-        showNotification('❌ Нет активного заказа для подтверждения');
+        showNotification('❌ Ошибка подтверждения оплаты: ' + error.message);
     }
 }
 
-// Красивое сообщение об успехе
-function showSuccessMessage() {
-    const message = `
-🎉 <b>Спасибо за покупку!</b>
-
-Ваш заказ #${currentOrder.id} успешно оформлен!
-
-📞 <b>С вами свяжется менеджер</b> в течение 15 минут для подтверждения заказа и уточнения деталей доставки.
-
-💬 <b>Не забудьте отправить скриншот оплаты</b> менеджеру в Telegram для ускорения обработки заказа.
-
-⏰ <b>Время обработки:</b> 15-30 минут в рабочее время
-🚚 <b>Доставка:</b> 1-3 дня через СДЭК
-
-Если у вас есть вопросы, напишите нашему менеджеру:
-${BOT_CONFIG.managerUsername}
-    `.trim();
+// АНИМАЦИЯ УСПЕШНОЙ ОПЛАТЫ
+function showPaymentSuccessAnimation() {
+    const paymentScreen = document.getElementById('payment');
     
-    showNotification(message, 5000);
+    // Создаем элемент для анимации
+    const successOverlay = document.createElement('div');
+    successOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(16, 185, 129, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        color: white;
+        text-align: center;
+        padding: 20px;
+        animation: fadeIn 0.5s ease;
+    `;
     
-    // Возвращаем в главное меню через 3 секунды
-    setTimeout(() => {
-        showScreen('catalog');
-        // Добавляем анимацию успеха
-        document.querySelector('.app-main').classList.add('success-animation');
+    successOverlay.innerHTML = `
+        <div style="font-size: 80px; margin-bottom: 20px; animation: bounce 1s ease infinite;">🎉</div>
+        <h2 style="font-size: 24px; margin-bottom: 10px; color: white; font-weight: bold;">Оплата подтверждена!</h2>
+        <p style="margin-bottom: 20px; font-size: 16px; opacity: 0.9;">Заказ #${currentOrder.id} успешно оформлен</p>
+        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.3);">
+            <p style="margin: 5px 0;">📞 <strong>С вами свяжется менеджер</strong> в течение 15 минут</p>
+            <p style="margin: 5px 0;">💬 <strong>Не забудьте отправить скриншот оплаты</strong></p>
+            <p style="margin: 5px 0;">🚚 <strong>Доставка:</strong> 1-3 дня через СДЭК</p>
+        </div>
+        <button onclick="closeSuccessAnimation()" style="
+            background: white; 
+            color: #10b981; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 10px; 
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        ">
+            👍 Понятно
+        </button>
+    `;
+    
+    // Добавляем стили для анимации
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(successOverlay);
+    
+    // Добавляем hover эффект для кнопки
+    const button = successOverlay.querySelector('button');
+    button.addEventListener('mouseover', function() {
+        this.style.transform = 'scale(1.05)';
+    });
+    button.addEventListener('mouseout', function() {
+        this.style.transform = 'scale(1)';
+    });
+}
+
+function closeSuccessAnimation() {
+    const overlay = document.querySelector('div[style*="rgba(16, 185, 129"]');
+    if (overlay) {
+        overlay.style.animation = 'fadeIn 0.5s ease reverse';
         setTimeout(() => {
-            document.querySelector('.app-main').classList.remove('success-animation');
-        }, 1000);
-    }, 3000);
+            overlay.remove();
+            showScreen('catalog');
+            
+            // Добавляем анимацию успеха на главном экране
+            document.querySelector('.app-main').classList.add('success-animation');
+            setTimeout(() => {
+                document.querySelector('.app-main').classList.remove('success-animation');
+            }, 1000);
+        }, 500);
+    }
 }
 
 // ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
@@ -660,7 +737,8 @@ function getStatusText(status) {
     const statusMap = {
         'new': '🆕 Ожидает оплаты',
         'paid': '💳 Оплачен',
-        'completed': '✅ Завершен',
+        'accepted': '✅ Принят',
+        'completed': '🚚 Отправлен',
         'cancelled': '❌ Отменен'
     };
     return statusMap[status] || status;
@@ -793,15 +871,44 @@ function showNotification(message, duration = 3000) {
             max-width: 320px;
             text-align: center;
             line-height: 1.4;
+            animation: slideDown 0.3s ease;
         `;
         toast.innerHTML = message.replace(/\n/g, '<br>');
         document.body.appendChild(toast);
         
+        // Добавляем стили для анимации
+        if (!document.querySelector('#toast-styles')) {
+            const style = document.createElement('style');
+            style.id = 'toast-styles';
+            style.textContent = `
+                @keyframes slideDown {
+                    from { transform: translate(-50%, -100%); opacity: 0; }
+                    to { transform: translate(-50%, 0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         setTimeout(() => {
-            toast.remove();
+            toast.style.animation = 'slideDown 0.3s ease reverse';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
         }, duration);
     }
 }
+
+// Улучшенная функция для кнопки "Написать менеджеру" в разделе оплаты
+function openPaymentManagerChat() {
+    const orderInfo = currentOrder ? `По заказу #${currentOrder.id}` : 'По вопросу о заказе';
+    const defaultMessage = `Здравствуйте! ${orderInfo}. Прикладываю скриншот оплаты:`;
+    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(defaultMessage)}`;
+    
+    window.open(telegramUrl, '_blank');
+}
+
+// Обновляем вызов функции в HTML для кнопки в разделе оплаты
+// В HTML замените onclick="openManagerChat()" на onclick="openPaymentManagerChat()"
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
@@ -818,3 +925,39 @@ function debugApp() {
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
 }
+
+// Дополнительные утилиты
+function formatPrice(price) {
+    return new Intl.NumberFormat('ru-RU').format(price) + '₽';
+}
+
+function validatePhone(phone) {
+    const phoneRegex = /^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$/;
+    return phoneRegex.test(phone.replace(/\s/g, ''));
+}
+
+// Автоматическое форматирование телефона
+document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.querySelector('input[name="phone"]');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.startsWith('7') || value.startsWith('8')) {
+                value = value.substring(1);
+            }
+            if (value.length > 0) {
+                value = '+7 ' + value;
+            }
+            if (value.length > 7) {
+                value = value.substring(0, 7) + ' ' + value.substring(7);
+            }
+            if (value.length > 11) {
+                value = value.substring(0, 11) + ' ' + value.substring(11);
+            }
+            if (value.length > 14) {
+                value = value.substring(0, 14) + ' ' + value.substring(14);
+            }
+            e.target.value = value;
+        });
+    }
+});

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniShisha - Магазин кальянов</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Проверка возраста -->
+        <div id="ageWarning" class="screen">
+            <div class="age-warning">
+                <h2>🔞 ВНИМАНИЕ</h2>
+                <p>Товары предназначены для лиц старше 18 лет</p>
+                <div class="age-buttons">
+                    <button onclick="confirmAge()" class="btn-age confirm">✅ Мне есть 18 лет</button>
+                    <button onclick="rejectAge()" class="btn-age reject">❌ Мне нет 18 лет</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Главное приложение -->
+        <div id="mainApp" class="screen hidden">
+            <!-- Шапка -->
+            <header class="header">
+                <h1>🔩 MiniShisha</h1>
+                <p>Магазин комплектующих для кальянов</p>
+            </header>
+
+            <!-- Навигация -->
+            <nav class="nav">
+                <button onclick="showScreen('catalog')" class="nav-btn">🛒 Каталог</button>
+                <button onclick="showScreen('cart')" class="nav-btn">📦 Корзина <span id="cartCount" class="badge">0</span></button>
+                <button onclick="showScreen('orders')" class="nav-btn">📋 Заказы</button>
+                <button onclick="showScreen('referral')" class="nav-btn">🎁 Рефералы</button>
+            </nav>
+
+            <!-- Экран каталога -->
+            <div id="catalog" class="screen-content">
+                <h2>🛍️ Каталог товаров</h2>
+                <div id="productsList" class="products-grid"></div>
+            </div>
+
+            <!-- Экран корзины -->
+            <div id="cart" class="screen-content hidden">
+                <h2>📦 Ваша корзина</h2>
+                <div id="cartItems"></div>
+                <div class="cart-total">
+                    <div class="total-line">
+                        <span>Итого:</span>
+                        <span id="totalPrice">0₽</span>
+                    </div>
+                    <button onclick="checkout()" class="btn-primary">💳 Оформить заказ</button>
+                </div>
+            </div>
+
+            <!-- Оформление заказа -->
+            <div id="checkout" class="screen-content hidden">
+                <h2>🎯 Оформление заказа</h2>
+                <form id="orderForm" class="order-form">
+                    <input type="text" name="name" placeholder="Ваше имя" required>
+                    <input type="text" name="telegram" placeholder="Telegram (@username)" required>
+                    <input type="tel" name="phone" placeholder="Телефон" required>
+                    <input type="text" name="address" placeholder="Адрес доставки" required>
+                    <textarea name="comment" placeholder="Комментарий к заказу (необязательно)"></textarea>
+                    <button type="submit" class="btn-primary">💳 Перейти к оплате</button>
+                </form>
+            </div>
+
+            <!-- Оплата -->
+            <div id="payment" class="screen-content hidden">
+                <h2>💳 Оплата заказа</h2>
+                <div class="payment-info">
+                    <div class="order-summary">
+                        <p><strong>Заказ #<span id="orderId"></span></strong></p>
+                        <p>Сумма к оплате: <span id="paymentAmount" class="price">0₽</span></p>
+                        <p class="prepayment">*Предоплата 50%</p>
+                    </div>
+                    
+                    <div class="bank-details">
+                        <h3>Реквизиты для перевода:</h3>
+                        <div class="bank-card">
+                            <p><strong>Сбербанк:</strong></p>
+                            <p class="card-number">2200 1234 5678 9012</p>
+                            <p>Иван Иванов</p>
+                        </div>
+                        <div class="bank-card">
+                            <p><strong>Тинькофф:</strong></p>
+                            <p class="card-number">5536 9138 1234 5678</p>
+                            <p>Иван Иванов</p>
+                        </div>
+                    </div>
+
+                    <div class="payment-instructions">
+                        <p>📱 После оплаты пришлите скриншот чека в Telegram:</p>
+                        <p class="support-contact">@minishisha_support</p>
+                    </div>
+
+                    <button onclick="confirmPayment()" class="btn-success">✅ Я оплатил</button>
+                    <button onclick="showScreen('catalog')" class="btn-secondary">← Вернуться в магазин</button>
+                </div>
+            </div>
+
+            <!-- Мои заказы -->
+            <div id="orders" class="screen-content hidden">
+                <h2>📋 История заказов</h2>
+                <div id="ordersList" class="orders-list"></div>
+            </div>
+
+            <!-- Реферальная система -->
+            <div id="referral" class="screen-content hidden">
+                <h2>🎁 Реферальная программа</h2>
+                <div class="referral-info">
+                    <div class="referral-benefits">
+                        <p>💎 <strong>Приглашайте друзей и получайте бонусы!</strong></p>
+                        <ul>
+                            <li>✅ Скидка 10% для друга</li>
+                            <li>✅ 5% кэшбэк вам</li>
+                            <li>✅ Бесплатная доставка при 3+ рефералах</li>
+                        </ul>
+                    </div>
+
+                    <div class="referral-link-section">
+                        <p>Ваша реферальная ссылка:</p>
+                        <div class="link-container">
+                            <input type="text" id="referralLink" readonly class="referral-input">
+                            <button onclick="copyReferralLink()" class="btn-copy">📋</button>
+                        </div>
+                    </div>
+
+                    <div class="referral-stats">
+                        <div class="stat-item">
+                            <span>Приглашено друзей:</span>
+                            <strong id="referralCount">0</strong>
+                        </div>
+                        <div class="stat-item">
+                            <span>Ваша скидка:</span>
+                            <strong id="discountPercent">10%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -585,21 +585,7 @@ function closeSuccessAnimation() {
 }
 // ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
 async function sendOrderToAdmin(orderData) {
-    try {
-        // Отправляем заказ на вебхук бота
-        const response = await fetch('/webhook/order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(orderData)
-        });
-        
-        const result = await response.json();
-        console.log('Order sent to admin via webhook:', result);
-        
-        // Дублируем отправку через Telegram API на всякий случай
-        const telegramMessage = `
+    const message = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
 
 👤 <b>Клиент:</b> ${orderData.name}
@@ -622,27 +608,45 @@ ${orderData.comment ? `💬 <b>Комментарий клиента:</b>\n${ord
 ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (скидка ${orderData.userDiscount}%)` : ''}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
-        `.trim();
+    `.trim();
 
-        const telegramResponse = await fetch(`https://api.telegram.org/bot${BOT_CONFIG.token}/sendMessage`, {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_CONFIG.token}/sendMessage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 chat_id: BOT_CONFIG.adminChatId,
-                text: telegramMessage,
-                parse_mode: 'HTML'
+                text: message,
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            { text: "✅ Принять заказ", callback_data: `order_${orderData.id}_accept` },
+                            { text: "❌ Отменить заказ", callback_data: `order_${orderData.id}_cancel` }
+                        ],
+                        [
+                            { text: "📦 Все заказы", callback_data: "show_orders" }
+                        ]
+                    ]
+                }
             })
         });
         
-        const telegramResult = await telegramResponse.json();
-        console.log('Order sent to admin via Telegram API:', telegramResult);
+        const result = await response.json();
+        console.log('Order sent to admin:', result);
         
-        return result.success || telegramResult.ok;
-        
+        if (result.ok) {
+            return true;
+        } else {
+            console.error('Telegram API error:', result);
+            return false;
+        }
     } catch (error) {
         console.error('Error sending order to admin:', error);
+        // Показываем уведомление, что заказ создан, но уведомление не отправлено
+        showNotification('✅ Заказ создан! Но возникла проблема с уведомлением менеджера. Пожалуйста, напишите ему вручную.');
         return false;
     }
 }
@@ -975,3 +979,4 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+

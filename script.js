@@ -106,6 +106,8 @@ function showMainApp() {
 
 // Навигация
 function showScreen(screenId) {
+    console.log('Переход на экран:', screenId);
+    
     // Скрываем все экраны
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
@@ -117,10 +119,16 @@ function showScreen(screenId) {
     });
     
     // Показываем выбранный экран
-    document.getElementById(screenId).classList.add('active');
+    const targetScreen = document.getElementById(screenId);
+    if (targetScreen) {
+        targetScreen.classList.add('active');
+    }
     
     // Активируем соответствующую кнопку навигации
-    document.querySelector(`[data-screen="${screenId}"]`).classList.add('active');
+    const navButton = document.querySelector(`[data-screen="${screenId}"]`);
+    if (navButton) {
+        navButton.classList.add('active');
+    }
     
     // Обновляем данные для конкретных экранов
     switch(screenId) {
@@ -139,6 +147,8 @@ function showScreen(screenId) {
 // Загрузка товаров
 function loadProducts() {
     const productsList = document.getElementById('productsList');
+    if (!productsList) return;
+    
     productsList.innerHTML = '';
 
     products.forEach((product, index) => {
@@ -236,6 +246,8 @@ function updateCartUI() {
     const cartItems = document.getElementById('cartItems');
     const totalPrice = document.getElementById('totalPrice');
     const cartCount = document.getElementById('cartCount');
+    
+    if (!cartItems || !totalPrice || !cartCount) return;
     
     // Обновляем счетчик в навигации
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -360,8 +372,12 @@ function createOrder(orderData) {
 }
 
 function showPaymentScreen(orderId, amount) {
-    document.getElementById('orderId').textContent = orderId;
-    document.getElementById('paymentAmount').textContent = `${amount}₽`;
+    const orderIdElement = document.getElementById('orderId');
+    const paymentAmountElement = document.getElementById('paymentAmount');
+    
+    if (orderIdElement) orderIdElement.textContent = orderId;
+    if (paymentAmountElement) paymentAmountElement.textContent = `${amount}₽`;
+    
     showScreen('payment');
 }
 
@@ -382,18 +398,21 @@ function confirmPayment() {
         
         // Возвращаем в каталог
         showScreen('catalog');
+    } else {
+        showNotification('❌ Нет активного заказа для подтверждения');
     }
 }
 
 // Управление заказами
 function loadOrdersUI() {
     const ordersList = document.getElementById('ordersList');
+    if (!ordersList) return;
+    
     ordersList.innerHTML = '';
     
-    const userOrders = orders.filter(order => 
-        order.telegram && currentOrder && order.telegram === currentOrder.telegram
-    );
-    
+    // Для демонстрации показываем все заказы
+    const userOrders = orders;
+
     if (userOrders.length === 0) {
         ordersList.innerHTML = `
             <div class="empty-cart">
@@ -468,18 +487,24 @@ function getStatusText(status) {
 
 // Реферальная система
 function loadReferralUI() {
+    const referralLinkElement = document.getElementById('referralLink');
+    const referralCountElement = document.getElementById('referralCount');
+    const discountPercentElement = document.getElementById('discountPercent');
+    
+    if (!referralLinkElement || !referralCountElement || !discountPercentElement) return;
+    
     const userId = generateUserId();
     const referralLink = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
     
-    document.getElementById('referralLink').value = referralLink;
+    referralLinkElement.value = referralLink;
     
     // Обновляем статистику
     const userReferrals = referrals.filter(ref => ref.referrerId === userId);
-    document.getElementById('referralCount').textContent = userReferrals.length;
+    referralCountElement.textContent = userReferrals.length;
     
     // Рассчитываем скидку
     const discount = Math.min(10 + userReferrals.length * 5, 30);
-    document.getElementById('discountPercent').textContent = `${discount}%`;
+    discountPercentElement.textContent = `${discount}%`;
 }
 
 function generateUserId() {
@@ -493,6 +518,8 @@ function generateUserId() {
 
 function copyReferralLink() {
     const linkInput = document.getElementById('referralLink');
+    if (!linkInput) return;
+    
     linkInput.select();
     linkInput.setSelectionRange(0, 99999);
     
@@ -565,5 +592,14 @@ function showNotification(message) {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Страница загружена, инициализируем приложение...');
     initApp();
 });
+
+// Дебаг функции для проверки работы
+function debugApp() {
+    console.log('Cart:', cart);
+    console.log('Orders:', orders);
+    console.log('Referrals:', referrals);
+    console.log('Current Order:', currentOrder);
+}

@@ -583,10 +583,23 @@ function closeSuccessAnimation() {
         }, 500);
     }
 }
-
 // ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
 async function sendOrderToAdmin(orderData) {
-    const message = `
+    try {
+        // Отправляем заказ на вебхук бота
+        const response = await fetch('/webhook/order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        const result = await response.json();
+        console.log('Order sent to admin via webhook:', result);
+        
+        // Дублируем отправку через Telegram API на всякий случай
+        const telegramMessage = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
 
 👤 <b>Клиент:</b> ${orderData.name}
@@ -609,27 +622,28 @@ ${orderData.comment ? `💬 <b>Комментарий клиента:</b>\n${ord
 ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (скидка ${orderData.userDiscount}%)` : ''}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
-    `.trim();
+        `.trim();
 
-    try {
-        const response = await fetch(`https://api.telegram.org/bot${BOT_CONFIG.token}/sendMessage`, {
+        const telegramResponse = await fetch(`https://api.telegram.org/bot${BOT_CONFIG.token}/sendMessage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 chat_id: BOT_CONFIG.adminChatId,
-                text: message,
+                text: telegramMessage,
                 parse_mode: 'HTML'
             })
         });
         
-        const result = await response.json();
-        console.log('Order sent to admin:', result);
-        return result;
+        const telegramResult = await telegramResponse.json();
+        console.log('Order sent to admin via Telegram API:', telegramResult);
+        
+        return result.success || telegramResult.ok;
+        
     } catch (error) {
         console.error('Error sending order to admin:', error);
-        return null;
+        return false;
     }
 }
 

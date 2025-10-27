@@ -332,11 +332,20 @@ body {
     margin-bottom: 12px;
 }
 
+.product-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 12px;
+    background: var(--surface-light);
+}
+
 .product-icon {
     font-size: 32px;
     background: var(--gradient);
     padding: 8px;
     border-radius: 12px;
+    display: none;
 }
 
 .product-card h3 {
@@ -459,11 +468,21 @@ body {
     align-items: center;
 }
 
+.cart-item-info {
+    flex: 1;
+}
+
 .cart-item-info h4 {
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 4px;
     color: var(--text-primary);
+}
+
+.item-price-single {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
 }
 
 .cart-item-actions {
@@ -520,6 +539,27 @@ body {
     border-radius: 6px;
     cursor: pointer;
     font-size: 12px;
+}
+
+/* Стили для отображения скидок */
+.discount-info {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 16px 0;
+}
+
+.discount-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.discount-amount {
+    color: var(--success);
+    font-size: 16px;
 }
 
 .cart-footer {
@@ -842,6 +882,18 @@ body {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.referral-badge {
+    background: var(--gradient-accent);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 .order-status {
@@ -1073,6 +1125,7 @@ body {
 .product-card:nth-child(even) {
     animation-delay: 0.2s;
 }
+
 /* Исправления для кнопок */
 button {
     cursor: pointer;
@@ -1115,49 +1168,3 @@ button:active {
 .btn-copy:active {
     transform: translateY(1px);
 }
-/* Добавляем в конец файла */
-
-/* Стили для отображения скидок */
-.discount-info {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: 10px;
-    padding: 12px;
-    margin: 16px 0;
-}
-
-.discount-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 600;
-}
-
-.discount-amount {
-    color: var(--success);
-    font-size: 16px;
-}
-
-.item-price-single {
-    color: var(--text-muted);
-    font-size: 12px;
-    margin-top: 4px;
-}
-
-/* Бейдж для реферальной скидки */
-.referral-badge {
-    background: var(--gradient-accent);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    margin-left: 8px;
-}
-
-/* Обновляем стили для корзины */
-.cart-item-info {
-    flex: 1;
-}
-
-

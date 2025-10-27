@@ -3,151 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniShisha - Магазин кальянов</title>
+    <title>MiniShisha | Премиум комплектующие для кальяна</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Проверка возраста -->
-        <div id="ageWarning" class="screen">
-            <div class="age-warning">
-                <h2>🔞 ВНИМАНИЕ</h2>
-                <p>Товары предназначены для лиц старше 18 лет</p>
-                <div class="age-buttons">
-                    <button onclick="confirmAge()" class="btn-age confirm">✅ Мне есть 18 лет</button>
-                    <button onclick="rejectAge()" class="btn-age reject">❌ Мне нет 18 лет</button>
+    <div class="app">
+        <!-- Age Verification -->
+        <div id="ageWarning" class="age-verification">
+            <div class="verification-card">
+                <div class="verification-icon">🔞</div>
+                <h1>Доступ ограничен</h1>
+                <p class="verification-text">Данный товар предназначен для лиц старше 18 лет</p>
+                <div class="verification-actions">
+                    <button onclick="confirmAge()" class="btn-confirm">
+                        <span class="btn-icon">✅</span>
+                        Мне есть 18 лет
+                    </button>
+                    <button onclick="rejectAge()" class="btn-reject">
+                        <span class="btn-icon">❌</span>
+                        Мне нет 18 лет
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Главное приложение -->
-        <div id="mainApp" class="screen hidden">
-            <!-- Шапка -->
-            <header class="header">
-                <h1>🔩 MiniShisha</h1>
-                <p>Магазин комплектующих для кальянов</p>
-                <div class="header-banner">
-                    <span class="banner-text">🚚 Бесплатная доставка от 3000₽</span>
+        <!-- Main App -->
+        <div id="mainApp" class="main-app hidden">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="logo">💨</div>
+                        <div class="brand-text">
+                            <h1>MiniShisha</h1>
+                            <p>Премиум комплектующие</p>
+                        </div>
+                    </div>
+                    <div class="header-features">
+                        <div class="feature-item">
+                            <span class="feature-icon">🚚</span>
+                            <span>Бесплатная доставка</span>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">⭐</span>
+                            <span>Гарантия качества</span>
+                        </div>
+                    </div>
                 </div>
             </header>
 
-            <!-- Навигация -->
-            <nav class="nav">
-                <button onclick="showScreen('catalog')" class="nav-btn">🛒 Каталог</button>
-                <button onclick="showScreen('cart')" class="nav-btn">📦 Корзина <span id="cartCount" class="badge">0</span></button>
-                <button onclick="showScreen('orders')" class="nav-btn">📋 Заказы</button>
-                <button onclick="showScreen('referral')" class="nav-btn">🎁 Рефералы</button>
+            <!-- Navigation -->
+            <nav class="app-nav">
+                <div class="nav-container">
+                    <button onclick="showScreen('catalog')" class="nav-item active" data-screen="catalog">
+                        <span class="nav-icon">🛍️</span>
+                        <span class="nav-text">Каталог</span>
+                    </button>
+                    <button onclick="showScreen('cart')" class="nav-item" data-screen="cart">
+                        <span class="nav-icon">🛒</span>
+                        <span class="nav-text">Корзина</span>
+                        <span id="cartCount" class="nav-badge">0</span>
+                    </button>
+                    <button onclick="showScreen('orders')" class="nav-item" data-screen="orders">
+                        <span class="nav-icon">📋</span>
+                        <span class="nav-text">Заказы</span>
+                    </button>
+                    <button onclick="showScreen('referral')" class="nav-item" data-screen="referral">
+                        <span class="nav-icon">🎁</span>
+                        <span class="nav-text">Бонусы</span>
+                    </button>
+                </div>
             </nav>
 
-            <!-- Экран каталога -->
-            <div id="catalog" class="screen-content">
-                <h2>🛍️ Наш ассортимент</h2>
-                <div class="catalog-info">
-                    <p>🔥 Только качественные комплектующие для вашего кальяна</p>
+            <!-- Main Content -->
+            <main class="app-main">
+                <!-- Catalog Screen -->
+                <div id="catalog" class="screen active">
+                    <div class="screen-header">
+                        <h2>Наша коллекция</h2>
+                        <p>Только премиум качество для истинных ценителей</p>
+                    </div>
+                    <div id="productsList" class="products-grid"></div>
                 </div>
-                <div id="productsList" class="products-grid"></div>
-            </div>
 
-            <!-- Экран корзины -->
-            <div id="cart" class="screen-content hidden">
-                <h2>📦 Ваша корзина</h2>
-                <div id="cartItems"></div>
-                <div class="cart-total">
-                    <div class="total-line">
-                        <span>Итого:</span>
-                        <span id="totalPrice">0₽</span>
+                <!-- Cart Screen -->
+                <div id="cart" class="screen">
+                    <div class="screen-header">
+                        <h2>Ваша корзина</h2>
+                        <p>Проверьте ваш заказ перед оформлением</p>
                     </div>
-                    <button onclick="checkout()" class="btn-primary">💳 Оформить заказ</button>
-                </div>
-            </div>
-
-            <!-- Оформление заказа -->
-            <div id="checkout" class="screen-content hidden">
-                <h2>🎯 Оформление заказа</h2>
-                <form id="orderForm" class="order-form">
-                    <input type="text" name="name" placeholder="Ваше имя" required>
-                    <input type="text" name="telegram" placeholder="Telegram (@username)" required>
-                    <input type="tel" name="phone" placeholder="Телефон" required>
-                    <input type="text" name="address" placeholder="Адрес доставки" required>
-                    <textarea name="comment" placeholder="Комментарий к заказу (необязательно)"></textarea>
-                    <button type="submit" class="btn-primary">💳 Перейти к оплате</button>
-                </form>
-            </div>
-
-            <!-- Оплата -->
-            <div id="payment" class="screen-content hidden">
-                <h2>💳 Оплата заказа</h2>
-                <div class="payment-info">
-                    <div class="order-summary">
-                        <p><strong>Заказ #<span id="orderId"></span></strong></p>
-                        <p>Сумма к оплате: <span id="paymentAmount" class="price">0₽</span></p>
-                        <p class="prepayment">*Предоплата 50%</p>
-                    </div>
-                    
-                    <div class="bank-details">
-                        <h3>Реквизиты для перевода:</h3>
-                        <div class="bank-card">
-                            <p><strong>Сбербанк:</strong></p>
-                            <p class="card-number">2200 1234 5678 9012</p>
-                            <p>Иван Иванов</p>
-                        </div>
-                        <div class="bank-card">
-                            <p><strong>Тинькофф:</strong></p>
-                            <p class="card-number">5536 9138 1234 5678</p>
-                            <p>Иван Иванов</p>
-                        </div>
-                    </div>
-
-                    <div class="payment-instructions">
-                        <p>📱 После оплаты пришлите скриншот чека в Telegram:</p>
-                        <p class="support-contact">@minishisha_support</p>
-                    </div>
-
-                    <button onclick="confirmPayment()" class="btn-success">✅ Я оплатил</button>
-                    <button onclick="showScreen('catalog')" class="btn-secondary">← Вернуться в магазин</button>
-                </div>
-            </div>
-
-            <!-- Мои заказы -->
-            <div id="orders" class="screen-content hidden">
-                <h2>📋 История заказов</h2>
-                <div id="ordersList" class="orders-list"></div>
-            </div>
-
-            <!-- Реферальная система -->
-            <div id="referral" class="screen-content hidden">
-                <h2>🎁 Реферальная программа</h2>
-                <div class="referral-info">
-                    <div class="referral-benefits">
-                        <p>💎 <strong>Приглашайте друзей и получайте бонусы!</strong></p>
-                        <ul>
-                            <li>✅ Скидка 10% для друга</li>
-                            <li>✅ 5% кэшбэк вам</li>
-                            <li>✅ Бесплатная доставка при 3+ рефералах</li>
-                        </ul>
-                    </div>
-
-                    <div class="referral-link-section">
-                        <p>Ваша реферальная ссылка:</p>
-                        <div class="link-container">
-                            <input type="text" id="referralLink" readonly class="referral-input">
-                            <button onclick="copyReferralLink()" class="btn-copy">📋</button>
-                        </div>
-                    </div>
-
-                    <div class="referral-stats">
-                        <div class="stat-item">
-                            <span>Приглашено друзей:</span>
-                            <strong id="referralCount">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Ваша скидка:</span>
-                            <strong id="discountPercent">10%</strong>
+                    <div id="cartItems" class="cart-items"></div>
+                    <div class="cart-footer">
+                        <div class="total-section">
+                            <div class="total-line">
+                                <span>Итого:</span>
+                                <span id="totalPrice" class="total-price">0₽</span>
+                            </div>
+                            <button onclick="checkout()" class="btn-checkout">
+                                <span class="btn-icon">💳</span>
+                                Оформить заказ
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <!-- Checkout Screen -->
+                <div id="checkout" class="screen">
+                    <div class="screen-header">
+                        <h2>Оформление заказа</h2>
+                        <p>Заполните данные для доставки</p>
+                    </div>
+                    <form id="orderForm" class="order-form">
+                        <div class="form-group">
+                            <label>Ваше имя</label>
+                            <input type="text" name="name" placeholder="Иван Иванов" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Telegram</label>
+                            <input type="text" name="telegram" placeholder="@username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Телефон</label>
+                            <input type="tel" name="phone" placeholder="+7 (999) 999-99-99" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Адрес доставки</label>
+                            <input type="text" name="address" placeholder="Город, улица, дом, квартира" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Комментарий к заказу <span class="optional">(необязательно)</span></label>
+                            <textarea name="comment" placeholder="Особые пожелания или комментарии..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <span class="btn-icon">✨</span>
+                            Перейти к оплате
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Payment Screen -->
+                <div id="payment" class="screen">
+                    <div class="screen-header">
+                        <h2>Оплата заказа</h2>
+                        <p>Переведите предоплату для подтверждения заказа</p>
+                    </div>
+                    <div class="payment-card">
+                        <div class="order-info">
+                            <div class="order-id">Заказ #<span id="orderId">MS12345</span></div>
+                            <div class="payment-amount">
+                                <span>Сумма к оплате:</span>
+                                <span id="paymentAmount" class="amount">0₽</span>
+                            </div>
+                            <div class="prepayment-note">*Предоплата 50% от суммы заказа</div>
+                        </div>
+
+                        <div class="payment-methods">
+                            <div class="method-card">
+                                <div class="method-header">
+                                    <span class="bank-icon">🏦</span>
+                                    <span class="bank-name">Сбербанк</span>
+                                </div>
+                                <div class="card-details">
+                                    <div class="card-number">2200 1234 5678 9012</div>
+                                    <div class="card-holder">Иван Иванов</div>
+                                </div>
+                            </div>
+                            
+                            <div class="method-card">
+                                <div class="method-header">
+                                    <span class="bank-icon">💳</span>
+                                    <span class="bank-name">Тинькофф</span>
+                                </div>
+                                <div class="card-details">
+                                    <div class="card-number">5536 9138 1234 5678</div>
+                                    <div class="card-holder">Иван Иванов</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="payment-instructions">
+                            <div class="instruction-item">
+                                <span class="instruction-icon">📱</span>
+                                <span>После оплаты пришлите скриншот чека в Telegram</span>
+                            </div>
+                            <div class="instruction-item">
+                                <span class="instruction-icon">⏰</span>
+                                <span>Заказ будет обработан в течение 15 минут после подтверждения оплаты</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-actions">
+                            <button onclick="confirmPayment()" class="btn-payment-confirm">
+                                <span class="btn-icon">✅</span>
+                                Я оплатил
+                            </button>
+                            <button onclick="showScreen('catalog')" class="btn-payment-back">
+                                ← Вернуться в магазин
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Screen -->
+                <div id="orders" class="screen">
+                    <div class="screen-header">
+                        <h2>История заказов</h2>
+                        <p>Отслеживайте статус ваших заказов</p>
+                    </div>
+                    <div id="ordersList" class="orders-list"></div>
+                </div>
+
+                <!-- Referral Screen -->
+                <div id="referral" class="screen">
+                    <div class="screen-header">
+                        <h2>Реферальная программа</h2>
+                        <p>Приглашайте друзей и получайте бонусы</p>
+                    </div>
+                    <div class="referral-content">
+                        <div class="benefits-card">
+                            <h3>🎁 Ваши преимущества</h3>
+                            <div class="benefits-list">
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">💰</span>
+                                    <div class="benefit-text">
+                                        <strong>10% скидка другу</strong>
+                                        <span>На первый заказ</span>
+                                    </div>
+                                </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">💸</span>
+                                    <div class="benefit-text">
+                                        <strong>5% кэшбэк вам</strong>
+                                        <span>С каждого заказа друга</span>
+                                    </div>
+                                </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">🚚</span>
+                                    <div class="benefit-text">
+                                        <strong>Бесплатная доставка</strong>
+                                        <span>При 3+ приглашенных</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="referral-link-card">
+                            <h3>🔗 Ваша реферальная ссылка</h3>
+                            <div class="link-container">
+                                <input type="text" id="referralLink" readonly class="referral-input">
+                                <button onclick="copyReferralLink()" class="btn-copy">
+                                    <span class="btn-icon">📋</span>
+                                    Копировать
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="stats-card">
+                            <h3>📊 Ваша статистика</h3>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="referralCount">0</div>
+                                    <div class="stat-label">Приглашено друзей</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="discountPercent">10%</div>
+                                    <div class="stat-label">Ваша скидка</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 

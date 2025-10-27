@@ -153,6 +153,9 @@ function showScreen(screenId) {
         case 'orders':
             loadOrdersUI();
             break;
+        case 'referral':
+            loadReferralUI();
+            break;
     }
 }
 
@@ -523,7 +526,7 @@ function showPaymentSuccessAnimation() {
         <p style="margin-bottom: 20px; font-size: 16px; opacity: 0.9;">Заказ #${currentOrder.id} успешно оформлен</p>
         <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.3);">
             <p style="margin: 5px 0;">📞 <strong>С вами свяжется менеджер</strong> в течение 15 минут</p>
-            <p style="margin: 5px 0;">💬 <strong>Не забудьте отправить скриншот оплаты</strong></p>
+            <p style="margin: 5px 0;">💬 <strong>Не забудьте отправить скриншот оплаты менеджеру</strong></p>
             <p style="margin: 5px 0;">🚚 <strong>Доставка:</strong> 1-3 дня через СДЭК</p>
         </div>
         <button onclick="closeSuccessAnimation()" style="
@@ -584,7 +587,7 @@ function closeSuccessAnimation() {
     }
 }
 
-// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
+// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ (БЕЗ КНОПОК)
 async function sendOrderToAdmin(orderData) {
     const message = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
@@ -609,6 +612,8 @@ ${orderData.comment ? `💬 <b>Комментарий клиента:</b>\n${ord
 ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (скидка ${orderData.userDiscount}%)` : ''}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
+
+💬 <b>Клиент должен отправить скриншот оплаты!</b>
     `.trim();
 
     try {
@@ -620,33 +625,19 @@ ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (с
             body: JSON.stringify({
                 chat_id: BOT_CONFIG.adminChatId,
                 text: message,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { text: "✅ Принять заказ", callback_data: `order_${orderData.id}_accept` },
-                            { text: "❌ Отменить заказ", callback_data: `order_${orderData.id}_cancel` }
-                        ],
-                        [
-                            { text: "📦 Все заказы", callback_data: "show_orders" }
-                        ]
-                    ]
-                }
+                parse_mode: 'HTML'
+                // УБИРАЕМ КНОПКИ - только уведомление
             })
         });
         
         const result = await response.json();
         console.log('Order sent to admin:', result);
         
-        if (result.ok) {
-            return true;
-        } else {
-            console.error('Telegram API error:', result);
-            return true; // Все равно возвращаем true для пользователя
-        }
+        return true; // Всегда возвращаем true для пользователя
+        
     } catch (error) {
         console.error('Error sending order to admin:', error);
-        return true; // Все равно возвращаем true для пользователя
+        return true; // Всегда возвращаем true для пользователя
     }
 }
 
@@ -654,6 +645,14 @@ ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (с
 function openManagerChat() {
     const defaultMessage = `Здравствуйте! У меня вопрос по заказу из MiniShisha`;
     const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(defaultMessage)}`;
+    
+    window.open(telegramUrl, '_blank');
+}
+
+// Улучшенная функция для кнопки "Написать менеджеру" в разделе оплаты
+function openPaymentManagerChat() {
+    const orderInfo = currentOrder ? `По заказу #${currentOrder.id}. Прикладываю скриншот оплаты:` : 'По вопросу о заказе';
+    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(orderInfo)}`;
     
     window.open(telegramUrl, '_blank');
 }
@@ -761,7 +760,7 @@ function getStatusText(status) {
     return statusMap[status] || status;
 }
 
-// Реферальная система
+// РЕФЕРАЛЬНАЯ СИСТЕМА
 function loadReferralUI() {
     const referralLinkElement = document.getElementById('referralLink');
     const referralCountElement = document.getElementById('referralCount');
@@ -915,15 +914,6 @@ function showNotification(message, duration = 3000) {
     }
 }
 
-// Улучшенная функция для кнопки "Написать менеджеру" в разделе оплаты
-function openPaymentManagerChat() {
-    const orderInfo = currentOrder ? `По заказу #${currentOrder.id}` : 'По вопросу о заказе';
-    const defaultMessage = `Здравствуйте! ${orderInfo}. Прикладываю скриншот оплаты:`;
-    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(defaultMessage)}`;
-    
-    window.open(telegramUrl, '_blank');
-}
-
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Страница загружена, инициализируем приложение...');
@@ -939,5 +929,3 @@ function debugApp() {
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
 }
-
-

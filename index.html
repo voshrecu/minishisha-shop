@@ -31,25 +31,21 @@
         <!-- Main App -->
         <div id="mainApp" class="main-app hidden">
             <!-- Header -->
-<header class="app-header">
-    <div class="header-content">
-        <div class="brand">
-            <div class="brand-text">
-                <h1>MiniShisha</h1>
-            </div>
-        </div>
-        <div class="header-features">
-            <div class="feature-item">
-                <span class="feature-icon">🚚</span>
-                <span>Бесплатная доставка через СДЭК</span>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">⭐</span>
-                <span>Гарантия качества</span>
-            </div>
-        </div>
-    </div>
-</header>
+            <header class="app-header">
+                <div class="header-content">
+                    <div class="brand">
+                        <div class="logo">🚀</div>
+                        <div class="brand-text">
+                            <h1>MiniShisha</h1>
+                            <p>Комплектующие для кальяна</p>
+                        </div>
+                    </div>
+                    <button class="btn-support" onclick="openManagerChat()">
+                        <span class="btn-icon">💬</span>
+                        Поддержка
+                    </button>
+                </div>
+            </header>
 
             <!-- Navigation -->
             <nav class="app-nav">
@@ -67,9 +63,9 @@
                         <span class="nav-icon">📋</span>
                         <span class="nav-text">Заказы</span>
                     </button>
-                    <button class="nav-item" data-screen="referral" onclick="showScreen('referral')">
-                        <span class="nav-icon">🎁</span>
-                        <span class="nav-text">Бонусы</span>
+                    <button class="nav-item" data-screen="support" onclick="showScreen('support')">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Помощь</span>
                     </button>
                 </div>
             </nav>
@@ -114,23 +110,56 @@
                     </div>
                     <form id="orderForm" class="order-form">
                         <div class="form-group">
-                            <label>Ваше имя</label>
+                            <label>Ваше имя *</label>
                             <input type="text" name="name" placeholder="Иван Иванов" required>
                         </div>
                         <div class="form-group">
-                            <label>Telegram</label>
+                            <label>Telegram *</label>
                             <input type="text" name="telegram" placeholder="@username" required>
                         </div>
                         <div class="form-group">
-                            <label>Телефон</label>
+                            <label>Телефон *</label>
                             <input type="tel" name="phone" placeholder="+7 (999) 999-99-99" required>
                         </div>
                         <div class="form-group">
-                            <label>Адрес пункта выдачи СДЭК</label>
+                            <label>Адрес пункта выдачи СДЭК *</label>
                             <input type="text" name="address" placeholder="Город, улица, дом, квартира" required>
                         </div>
+                        
+                        <!-- Выбор цвета шахты -->
                         <div class="form-group">
-                            <label>Комментарий к заказу <span class="optional">(указать цвет шахты)</span></label>
+                            <label>Цвет шахты *</label>
+                            <div class="color-selection">
+                                <label class="color-option">
+                                    <input type="radio" name="shaftColor" value="⚫️ Черный" required>
+                                    <span class="color-dot black"></span>
+                                    <span>Черный</span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="shaftColor" value="🔴 Красный" required>
+                                    <span class="color-dot red"></span>
+                                    <span>Красный</span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="shaftColor" value="🟢 Зеленый" required>
+                                    <span class="color-dot green"></span>
+                                    <span>Зеленый</span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="shaftColor" value="🔵 Синий" required>
+                                    <span class="color-dot blue"></span>
+                                    <span>Синий</span>
+                                </label>
+                                <label class="color-option">
+                                    <input type="radio" name="shaftColor" value="⚪️ Серебристый" required>
+                                    <span class="color-dot silver"></span>
+                                    <span>Серебристый</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Комментарий к заказу</label>
                             <textarea name="comment" placeholder="Особые пожелания или комментарии..."></textarea>
                         </div>
                         <button type="submit" class="btn-submit">
@@ -183,7 +212,7 @@
                         <div class="payment-instructions">
                             <div class="instruction-item">
                                 <span class="instruction-icon">📱</span>
-                                <span>После оплаты пришлите скриншот чека в Telegram</span>
+                                <span>После оплаты нажмите "Я оплатил" и пришлите скриншот чека менеджеру</span>
                             </div>
                             <div class="instruction-item">
                                 <span class="instruction-icon">⏰</span>
@@ -195,6 +224,10 @@
                             <button onclick="confirmPayment()" class="btn-payment-confirm">
                                 <span class="btn-icon">✅</span>
                                 Я оплатил
+                            </button>
+                            <button onclick="openManagerChat()" class="btn-payment-support">
+                                <span class="btn-icon">💬</span>
+                                Написать менеджеру
                             </button>
                             <button onclick="showScreen('catalog')" class="btn-payment-back">
                                 ← Вернуться в магазин
@@ -212,61 +245,54 @@
                     <div id="ordersList" class="orders-list"></div>
                 </div>
 
-                <!-- Referral Screen -->
-                <div id="referral" class="screen">
+                <!-- Support Screen -->
+                <div id="support" class="screen">
                     <div class="screen-header">
-                        <h2>Реферальная программа</h2>
-                        <p>Приглашайте друзей и получайте бонусы</p>
+                        <h2>Помощь и поддержка</h2>
+                        <p>Мы всегда на связи чтобы помочь вам</p>
                     </div>
-                    <div class="referral-content">
-                        <div class="benefits-card">
-                            <h3>🎁 Ваши преимущества</h3>
-                            <div class="benefits-list">
-                                <div class="benefit-item">
-                                    <span class="benefit-icon">💰</span>
-                                    <div class="benefit-text">
-                                        <strong>10% скидка другу</strong>
-                                        <span>На первый заказ</span>
-                                    </div>
+                    <div class="support-content">
+                        <div class="support-card">
+                            <h3>💬 Связь с менеджером</h3>
+                            <p>Напишите нам в Telegram для быстрой консультации по заказам, доставке или любым вопросам</p>
+                            <button onclick="openManagerChat()" class="btn-support-chat">
+                                <span class="btn-icon">📱</span>
+                                Написать в Telegram
+                            </button>
+                        </div>
+
+                        <div class="support-card">
+                            <h3>📞 Контактная информация</h3>
+                            <div class="contact-info">
+                                <div class="contact-item">
+                                    <span class="contact-icon">🕒</span>
+                                    <span>Время работы: 10:00 - 22:00</span>
                                 </div>
-                                <div class="benefit-item">
-                                    <span class="benefit-icon">💸</span>
-                                    <div class="benefit-text">
-                                        <strong>5% кэшбэк вам</strong>
-                                        <span>С каждого заказа друга</span>
-                                    </div>
+                                <div class="contact-item">
+                                    <span class="contact-icon">📧</span>
+                                    <span>Email: voshren76@mail.ru</span>
                                 </div>
-                                <div class="benefit-item">
-                                    <span class="benefit-icon">🚚</span>
-                                    <div class="benefit-text">
-                                        <strong>Бесплатная доставка</strong>
-                                        <span>При 3+ приглашенных</span>
-                                    </div>
+                                <div class="contact-item">
+                                    <span class="contact-icon">🌐</span>
+                                    <span>Telegram: @minishishaaa</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="referral-link-card">
-                            <h3>🔗 Ваша реферальная ссылка</h3>
-                            <div class="link-container">
-                                <input type="text" id="referralLink" readonly class="referral-input">
-                                <button onclick="copyReferralLink()" class="btn-copy">
-                                    <span class="btn-icon">📋</span>
-                                    Копировать
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="stats-card">
-                            <h3>📊 Ваша статистика</h3>
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <div class="stat-value" id="referralCount">0</div>
-                                    <div class="stat-label">Приглашено друзей</div>
+                        <div class="support-card">
+                            <h3>❓ Частые вопросы</h3>
+                            <div class="faq-list">
+                                <div class="faq-item">
+                                    <strong>Как долго идет доставка?</strong>
+                                    <span>7-14 дней через СДЭК</span>
                                 </div>
-                                <div class="stat-item">
-                                    <div class="stat-value" id="discountPercent">10%</div>
-                                    <div class="stat-label">Ваша скидка</div>
+                                <div class="faq-item">
+                                    <strong>Есть ли гарантия?</strong>
+                                    <span>Да, 2 недели на все товары</span>
+                                </div>
+                                <div class="faq-item">
+                                    <strong>Можно ли вернуть товар?</strong>
+                                    <span>Да, в течение 7 дней</span>
                                 </div>
                             </div>
                         </div>
@@ -279,8 +305,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-

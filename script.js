@@ -4,7 +4,7 @@ let currentOrder = null;
 let orders = [];
 let referrals = [];
 
-// Товары магазина - ТОЛЬКО КОЛБА И ШАХТА
+// Товары магазина
 const products = [
     {
         id: 'shaft',
@@ -14,10 +14,10 @@ const products = [
         image: '🔩',
         colors: ['⚫️ Черный', '🔴 Красный', '🟢 Зеленый', '🔵 Синий', '⚪️ Серебристый'],
         specs: {
-            material: 'Нержавеющая сталь',
-            height: '65 см',
-            diameter: '6.5 см',
-            weight: '850 г'
+            'Материал': 'Нержавеющая сталь',
+            'Высота': '65 см',
+            'Диаметр': '6.5 см',
+            'Вес': '850 г'
         }
     },
     {
@@ -28,9 +28,9 @@ const products = [
         image: '🔮',
         colors: ['🔵 Синяя', '🟢 Зеленая', '🔴 Красная', '⚫️ Черная'],
         specs: {
-            material: 'Закаленное стекло',
-            volume: '800 мл',
-            height: '22 см'
+            'Материал': 'Закаленное стекло',
+            'Объем': '800 мл',
+            'Высота': '22 см'
         }
     }
 ];
@@ -44,6 +44,8 @@ function initApp() {
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
+        Telegram.WebApp.setHeaderColor('#2c5530');
+        Telegram.WebApp.setBackgroundColor('#0f172a');
     }
     
     // Проверка возраста
@@ -87,11 +89,11 @@ function isAgeConfirmed() {
 function confirmAge() {
     localStorage.setItem('minishisha_ageConfirmed', 'true');
     showMainApp();
-    showNotification('✅ Добро пожаловать в MiniShisha!');
+    showNotification('🎉 Добро пожаловать в MiniShisha!');
 }
 
 function rejectAge() {
-    showNotification('❌ Доступ запрещен для лиц младше 18 лет');
+    showNotification('🚫 Доступ запрещен для лиц младше 18 лет');
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         setTimeout(() => Telegram.WebApp.close(), 2000);
     }
@@ -105,12 +107,20 @@ function showMainApp() {
 // Навигация
 function showScreen(screenId) {
     // Скрываем все экраны
-    document.querySelectorAll('.screen-content').forEach(screen => {
-        screen.classList.add('hidden');
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    
+    // Убираем активный класс со всех кнопок навигации
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
     });
     
     // Показываем выбранный экран
-    document.getElementById(screenId).classList.remove('hidden');
+    document.getElementById(screenId).classList.add('active');
+    
+    // Активируем соответствующую кнопку навигации
+    document.querySelector(`[data-screen="${screenId}"]`).classList.add('active');
     
     // Обновляем данные для конкретных экранов
     switch(screenId) {
@@ -133,7 +143,7 @@ function loadProducts() {
 
     products.forEach((product, index) => {
         const productCard = document.createElement('div');
-        productCard.className = `product-card ${index === 0 ? 'featured' : ''}`;
+        productCard.className = 'product-card';
         
         // Бейдж для первого товара
         const badge = index === 0 ? '<div class="product-badge">🔥 Хит продаж</div>' : '';
@@ -144,7 +154,7 @@ function loadProducts() {
                 <div class="specs-grid">
                     ${Object.entries(product.specs).map(([key, value]) => `
                         <div class="spec-item">
-                            <span>${getSpecName(key)}:</span>
+                            <span>${key}:</span>
                             <span class="spec-value">${value}</span>
                         </div>
                     `).join('')}
@@ -167,30 +177,19 @@ function loadProducts() {
                 <span class="product-icon">${product.image}</span>
                 <h3>${product.name}</h3>
             </div>
-            <p>${product.description}</p>
+            <p class="product-description">${product.description}</p>
             ${specsHTML}
             ${colorsHTML}
             <div class="product-footer">
                 <div class="product-price">${product.price}₽</div>
-                <button class="btn-secondary" onclick="addToCart('${product.id}')">
-                    ➕ В корзину
+                <button class="btn-add-to-cart" onclick="addToCart('${product.id}')">
+                    <span class="btn-icon">➕</span>
+                    В корзину
                 </button>
             </div>
         `;
         productsList.appendChild(productCard);
     });
-}
-
-// Вспомогательная функция для названий характеристик
-function getSpecName(key) {
-    const specNames = {
-        'material': 'Материал',
-        'height': 'Высота', 
-        'diameter': 'Диаметр',
-        'weight': 'Вес',
-        'volume': 'Объем'
-    };
-    return specNames[key] || key;
 }
 
 // Работа с корзиной
@@ -248,9 +247,9 @@ function updateCartUI() {
     if (cart.length === 0) {
         cartItems.innerHTML = `
             <div class="empty-cart">
-                <div style="font-size: 48px; margin-bottom: 15px;">🛒</div>
+                <div class="empty-cart-icon">🛒</div>
                 <p>Ваша корзина пуста</p>
-                <button onclick="showScreen('catalog')" class="btn-primary" style="margin-top: 15px;">
+                <button onclick="showScreen('catalog')" class="btn-checkout" style="margin-top: 20px;">
                     🛍️ Перейти к покупкам
                 </button>
             </div>
@@ -272,18 +271,17 @@ function updateCartUI() {
         cartItem.innerHTML = `
             <div class="cart-item-info">
                 <h4>${item.name}</h4>
-                <div class="cart-item-actions">
-                    <div class="quantity-controls">
-                        <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
-                        <span class="quantity">${item.quantity} шт.</span>
-                        <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
-                    </div>
-                    <div class="item-price">${itemTotal}₽</div>
-                    <button class="btn-secondary" onclick="removeFromCart('${item.id}')" 
-                            style="background: var(--danger-color);">
-                        🗑️ Удалить
-                    </button>
+            </div>
+            <div class="cart-item-actions">
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
+                    <span class="quantity">${item.quantity}</span>
+                    <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
                 </div>
+                <div class="item-price">${itemTotal}₽</div>
+                <button class="btn-remove" onclick="removeFromCart('${item.id}')">
+                    🗑️
+                </button>
             </div>
         `;
         cartItems.appendChild(cartItem);
@@ -342,7 +340,7 @@ function processOrderForm(form) {
 
 function createOrder(orderData) {
     const orderId = 'MS' + Date.now().toString().slice(-6);
-    const prepayment = Math.ceil(orderData.total * 0.5); // 50% предоплата
+    const prepayment = Math.ceil(orderData.total * 0.5);
     
     const order = {
         id: orderId,
@@ -376,7 +374,7 @@ function confirmPayment() {
             saveToStorage();
         }
         
-        showNotification(`✅ Спасибо! Заказ #${currentOrder.id} принят в обработку. Ожидайте подтверждения!`);
+        showNotification(`🎉 Спасибо! Заказ #${currentOrder.id} принят в обработку. Ожидайте подтверждения!`);
         
         // Очищаем корзину
         cart = [];
@@ -399,9 +397,9 @@ function loadOrdersUI() {
     if (userOrders.length === 0) {
         ordersList.innerHTML = `
             <div class="empty-cart">
-                <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+                <div class="empty-cart-icon">📋</div>
                 <p>У вас пока нет заказов</p>
-                <button onclick="showScreen('catalog')" class="btn-primary" style="margin-top: 15px;">
+                <button onclick="showScreen('catalog')" class="btn-checkout" style="margin-top: 20px;">
                     🛍️ Сделать первый заказ
                 </button>
             </div>
@@ -414,22 +412,42 @@ function loadOrdersUI() {
     
     userOrders.forEach(order => {
         const orderCard = document.createElement('div');
-        orderCard.className = `order-card ${order.status}`;
+        orderCard.className = 'order-card';
         orderCard.innerHTML = `
-            <h4>
-                Заказ #${order.id}
-                <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
-            </h4>
-            <p><strong>📅 Дата:</strong> ${order.date} в ${order.time}</p>
-            <p><strong>💰 Сумма:</strong> ${order.total}₽ (предоплата ${order.prepayment}₽)</p>
-            <p><strong>📦 Адрес:</strong> ${order.address}</p>
-            <p><strong>📱 Контакт:</strong> ${order.telegram}</p>
-            ${order.comment ? `<p><strong>💬 Комментарий:</strong> ${order.comment}</p>` : ''}
+            <div class="order-header">
+                <div class="order-title">Заказ #${order.id}</div>
+                <div class="order-status status-${order.status}">${getStatusText(order.status)}</div>
+            </div>
+            <div class="order-details">
+                <div class="order-detail">
+                    <strong>📅 Дата:</strong>
+                    <span>${order.date} ${order.time}</span>
+                </div>
+                <div class="order-detail">
+                    <strong>💰 Сумма:</strong>
+                    <span>${order.total}₽ (предоплата ${order.prepayment}₽)</span>
+                </div>
+                <div class="order-detail">
+                    <strong>📦 Адрес:</strong>
+                    <span>${order.address}</span>
+                </div>
+                <div class="order-detail">
+                    <strong>📱 Контакт:</strong>
+                    <span>${order.telegram}</span>
+                </div>
+                ${order.comment ? `
+                <div class="order-detail">
+                    <strong>💬 Комментарий:</strong>
+                    <span>${order.comment}</span>
+                </div>
+                ` : ''}
+            </div>
             <div class="order-items">
                 <strong>🛒 Состав заказа:</strong>
                 ${order.cart.map(item => `
-                    <div style="margin: 5px 0; padding-left: 10px;">
-                        ${item.name} - ${item.quantity}шт. × ${item.price}₽ = ${item.price * item.quantity}₽
+                    <div class="order-item">
+                        <span>${item.name}</span>
+                        <span>${item.quantity}шт. × ${item.price}₽ = ${item.price * item.quantity}₽</span>
                     </div>
                 `).join('')}
             </div>
@@ -518,7 +536,30 @@ function showNotification(message) {
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         Telegram.WebApp.showAlert(message);
     } else {
-        alert(message);
+        // Создаем красивый toast вместо alert
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            font-weight: 500;
+            max-width: 300px;
+            text-align: center;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
     }
 }
 

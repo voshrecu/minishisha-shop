@@ -6,6 +6,13 @@ let referrals = [];
 let userDiscount = 0;
 let isReferralUser = false;
 
+// Настройки бота (ЗАМЕНИТЕ НА СВОИ)
+const BOT_CONFIG = {
+    token: '8490335749:AAEKfRAaNKbnGNuEIN2M4rNVGb_BwH07nXk', // Токен от @BotFather
+    adminChatId: '922569313', // Ваш chat_id
+    managerUsername: '@minishishaaa' // Username менеджера
+};
+
 // Товары магазина
 const products = [
     {
@@ -13,7 +20,7 @@ const products = [
         name: 'Шахта для кальяна',
         price: 2000,
         description: 'Металлическая шахта с современным дизайном и защитной сеткой. Идеальная тяга и долговечность.',
-        image: 'images/black.jpg', // Замените на реальный путь
+        image: 'images/black.jpg',
         fallbackIcon: '🔩',
         colors: ['⚫️ Черный', '🔴 Красный', '🟢 Зеленый', '🔵 Синий', '⚪️ Серебристый'],
         specs: {
@@ -28,7 +35,7 @@ const products = [
         name: 'Колба для кальяна', 
         price: 1000,
         description: 'Стеклянная колба для полноценного использования. Отличная резьба и устойчивость.',
-        image: 'images/kolb.jpg', // Замените на реальный путь
+        image: 'images/kolb.jpg',
         fallbackIcon: '🔮',
         specs: {
             'Материал': 'ABS пластик',
@@ -145,9 +152,6 @@ function showScreen(screenId) {
             break;
         case 'orders':
             loadOrdersUI();
-            break;
-        case 'referral':
-            loadReferralUI();
             break;
     }
 }
@@ -352,6 +356,15 @@ function checkout() {
         return;
     }
     
+    // Проверяем, что есть и шахта и колба
+    const hasShaft = cart.some(item => item.id === 'shaft');
+    const hasBowl = cart.some(item => item.id === 'bowl');
+    
+    if (!hasShaft || !hasBowl) {
+        showNotification('⚠️ Для работы кальяна нужны и шахта и колба!');
+        return;
+    }
+    
     showScreen('checkout');
 }
 
@@ -373,13 +386,14 @@ function processOrderForm(form) {
         telegram: formData.get('telegram').trim(),
         phone: formData.get('phone').trim(),
         address: formData.get('address').trim(),
+        shaftColor: formData.get('shaftColor'),
         comment: formData.get('comment').trim(),
         cart: [...cart],
         timestamp: Date.now()
     };
     
     // Валидация
-    if (!orderData.name || !orderData.telegram || !orderData.phone || !orderData.address) {
+    if (!orderData.name || !orderData.telegram || !orderData.phone || !orderData.address || !orderData.shaftColor) {
         showNotification('❌ Заполните все обязательные поля!');
         return;
     }
@@ -428,8 +442,8 @@ function showPaymentScreen(orderId, amount) {
     showScreen('payment');
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ - теперь правильно переходит на экран заказов
-function confirmPayment() {
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОПЛАТЫ
+async function confirmPayment() {
     if (currentOrder) {
         // Обновляем статус заказа
         const order = orders.find(o => o.id === currentOrder.id);
@@ -438,7 +452,11 @@ function confirmPayment() {
             saveToStorage();
         }
         
-        showNotification(`🎉 Спасибо! Заказ #${currentOrder.id} принят в обработку. Ожидайте подтверждения в Telegram!`);
+        // Отправляем заказ администратору
+        const sendResult = await sendOrderToAdmin(currentOrder);
+        
+        // Показываем красивое сообщение
+        showSuccessMessage();
         
         // Очищаем корзину
         cart = [];
@@ -450,13 +468,100 @@ function confirmPayment() {
             saveToStorage();
         }
         
-        // Обновляем интерфейс и переходим к заказам
+        // Обновляем интерфейс
         updateCartUI();
-        showScreen('orders');
         
     } else {
         showNotification('❌ Нет активного заказа для подтверждения');
     }
+}
+
+// Красивое сообщение об успехе
+function showSuccessMessage() {
+    const message = `
+🎉 <b>Спасибо за покупку!</b>
+
+Ваш заказ #${currentOrder.id} успешно оформлен!
+
+📞 <b>С вами свяжется менеджер</b> в течение 15 минут для подтверждения заказа и уточнения деталей доставки.
+
+💬 <b>Не забудьте отправить скриншот оплаты</b> менеджеру в Telegram для ускорения обработки заказа.
+
+⏰ <b>Время обработки:</b> 15-30 минут в рабочее время
+🚚 <b>Доставка:</b> 1-3 дня через СДЭК
+
+Если у вас есть вопросы, напишите нашему менеджеру:
+${BOT_CONFIG.managerUsername}
+    `.trim();
+    
+    showNotification(message, 5000);
+    
+    // Возвращаем в главное меню через 3 секунды
+    setTimeout(() => {
+        showScreen('catalog');
+        // Добавляем анимацию успеха
+        document.querySelector('.app-main').classList.add('success-animation');
+        setTimeout(() => {
+            document.querySelector('.app-main').classList.remove('success-animation');
+        }, 1000);
+    }, 3000);
+}
+
+// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
+async function sendOrderToAdmin(orderData) {
+    const message = `
+🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
+
+👤 <b>Клиент:</b> ${orderData.name}
+📱 <b>Telegram:</b> ${orderData.telegram}
+📞 <b>Телефон:</b> ${orderData.phone}
+📍 <b>Адрес доставки:</b> ${orderData.address}
+🎨 <b>Цвет шахты:</b> ${orderData.shaftColor}
+
+💰 <b>Сумма заказа:</b> ${orderData.total}₽
+💳 <b>Предоплата:</b> ${orderData.prepayment}₽
+🎁 <b>Скидка:</b> ${orderData.discount}₽
+
+📦 <b>Состав заказа:</b>
+${orderData.cart.map(item => 
+    `• ${item.name} × ${item.quantity} = ${item.price * item.quantity}₽`
+).join('\n')}
+
+${orderData.comment ? `💬 <b>Комментарий клиента:</b>\n${orderData.comment}` : ''}
+
+${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (скидка ${orderData.userDiscount}%)` : ''}
+
+⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
+    `.trim();
+
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_CONFIG.token}/sendMessage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                chat_id: BOT_CONFIG.adminChatId,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Order sent to admin:', result);
+        return result;
+    } catch (error) {
+        console.error('Error sending order to admin:', error);
+        return null;
+    }
+}
+
+// СВЯЗЬ С МЕНЕДЖЕРОМ
+function openManagerChat() {
+    const defaultMessage = `Здравствуйте! У меня вопрос по заказу из MiniShisha`;
+    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(defaultMessage)}`;
+    
+    window.open(telegramUrl, '_blank');
 }
 
 // Управление заказами
@@ -466,7 +571,6 @@ function loadOrdersUI() {
     
     ordersList.innerHTML = '';
     
-    // Для демонстрации показываем все заказы
     const userOrders = orders;
 
     if (userOrders.length === 0) {
@@ -482,7 +586,6 @@ function loadOrdersUI() {
         return;
     }
     
-    // Сортируем заказы по дате (новые first)
     userOrders.sort((a, b) => b.timestamp - a.timestamp);
     
     userOrders.forEach(order => {
@@ -508,6 +611,10 @@ function loadOrdersUI() {
                 <div class="order-detail">
                     <strong>📅 Дата:</strong>
                     <span>${order.date} ${order.time}</span>
+                </div>
+                <div class="order-detail">
+                    <strong>🎨 Цвет шахты:</strong>
+                    <span>${order.shaftColor}</span>
                 </div>
                 ${order.subtotal > order.total ? `
                 <div class="order-detail">
@@ -664,7 +771,7 @@ function updateUserDiscount(userId, discount) {
 }
 
 // Вспомогательные функции
-function showNotification(message) {
+function showNotification(message, duration = 3000) {
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         Telegram.WebApp.showAlert(message);
     } else {
@@ -677,21 +784,22 @@ function showNotification(message) {
             transform: translateX(-50%);
             background: var(--surface);
             color: var(--text-primary);
-            padding: 12px 20px;
-            border-radius: 10px;
+            padding: 16px 20px;
+            border-radius: 12px;
             border: 1px solid var(--border);
             box-shadow: var(--shadow-lg);
             z-index: 1000;
             font-weight: 500;
-            max-width: 300px;
+            max-width: 320px;
             text-align: center;
+            line-height: 1.4;
         `;
-        toast.textContent = message;
+        toast.innerHTML = message.replace(/\n/g, '<br>');
         document.body.appendChild(toast);
         
         setTimeout(() => {
             toast.remove();
-        }, 3000);
+        }, duration);
     }
 }
 
@@ -710,7 +818,3 @@ function debugApp() {
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
 }
-
-
-
-

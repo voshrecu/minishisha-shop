@@ -28,7 +28,7 @@ const products = [
         name: 'Колба для кальяна', 
         price: 1000,
         description: 'Стеклянная колба для полноценного использования. Отличная резьба и устойчивость.',
-        image: 'images/bowl.jpg', // Замените на реальный путь
+        image: 'images/kolb.jpg', // Замените на реальный путь
         fallbackIcon: '🔮',
         specs: {
             'Материал': 'ABS пластик',
@@ -710,6 +710,7 @@ function debugApp() {
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
 }
+
 
 
 

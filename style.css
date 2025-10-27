@@ -1073,3 +1073,46 @@ body {
 .product-card:nth-child(even) {
     animation-delay: 0.2s;
 }
+/* Исправления для кнопок */
+button {
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Убедимся, что все кнопки видны и кликабельны */
+.nav-item, .btn-add-to-cart, .btn-checkout, .btn-submit, 
+.btn-payment-confirm, .btn-payment-back, .btn-copy, 
+.btn-confirm, .btn-reject, .quantity-btn, .btn-remove {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Улучшаем отзывчивость на мобильных */
+@media (max-width: 480px) {
+    button {
+        min-height: 44px; /* Минимальный размер для касания */
+    }
+    
+    .nav-item {
+        padding: 12px 8px;
+    }
+}
+
+/* Анимации для кнопок */
+.btn-add-to-cart, .btn-checkout, .btn-submit, 
+.btn-payment-confirm, .btn-copy {
+    transition: all 0.2s ease;
+}
+
+.btn-add-to-cart:active, .btn-checkout:active, 
+.btn-submit:active, .btn-payment-confirm:active, 
+.btn-copy:active {
+    transform: translateY(1px);
+}
+

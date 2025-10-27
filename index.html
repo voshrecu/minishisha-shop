@@ -54,28 +54,27 @@
             </header>
 
             <!-- Navigation -->
-            <nav class="app-nav">
-                <div class="nav-container">
-                    <button onclick="showScreen('catalog')" class="nav-item active" data-screen="catalog">
-                        <span class="nav-icon">🛍️</span>
-                        <span class="nav-text">Каталог</span>
-                    </button>
-                    <button onclick="showScreen('cart')" class="nav-item" data-screen="cart">
-                        <span class="nav-icon">🛒</span>
-                        <span class="nav-text">Корзина</span>
-                        <span id="cartCount" class="nav-badge">0</span>
-                    </button>
-                    <button onclick="showScreen('orders')" class="nav-item" data-screen="orders">
-                        <span class="nav-icon">📋</span>
-                        <span class="nav-text">Заказы</span>
-                    </button>
-                    <button onclick="showScreen('referral')" class="nav-item" data-screen="referral">
-                        <span class="nav-icon">🎁</span>
-                        <span class="nav-text">Бонусы</span>
-                    </button>
-                </div>
-            </nav>
-
+<nav class="app-nav">
+    <div class="nav-container">
+        <button class="nav-item active" data-screen="catalog" onclick="showScreen('catalog')">
+            <span class="nav-icon">🛍️</span>
+            <span class="nav-text">Каталог</span>
+        </button>
+        <button class="nav-item" data-screen="cart" onclick="showScreen('cart')">
+            <span class="nav-icon">🛒</span>
+            <span class="nav-text">Корзина</span>
+            <span id="cartCount" class="nav-badge">0</span>
+        </button>
+        <button class="nav-item" data-screen="orders" onclick="showScreen('orders')">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">Заказы</span>
+        </button>
+        <button class="nav-item" data-screen="referral" onclick="showScreen('referral')">
+            <span class="nav-icon">🎁</span>
+            <span class="nav-text">Бонусы</span>
+        </button>
+    </div>
+</nav>
             <!-- Main Content -->
             <main class="app-main">
                 <!-- Catalog Screen -->
@@ -281,3 +280,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+

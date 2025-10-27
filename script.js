@@ -4,7 +4,6 @@ let currentOrder = null;
 let orders = [];
 let referrals = [];
 
-// Товары магазина
 // Товары магазина - ТОЛЬКО КОЛБА И ШАХТА
 const products = [
     {
@@ -132,17 +131,45 @@ function loadProducts() {
     const productsList = document.getElementById('productsList');
     productsList.innerHTML = '';
 
-    products.forEach(product => {
+    products.forEach((product, index) => {
         const productCard = document.createElement('div');
-        productCard.className = 'product-card';
+        productCard.className = `product-card ${index === 0 ? 'featured' : ''}`;
+        
+        // Бейдж для первого товара
+        const badge = index === 0 ? '<div class="product-badge">🔥 Хит продаж</div>' : '';
+        
+        // Характеристики
+        const specsHTML = product.specs ? `
+            <div class="product-specs">
+                <div class="specs-grid">
+                    ${Object.entries(product.specs).map(([key, value]) => `
+                        <div class="spec-item">
+                            <span>${getSpecName(key)}:</span>
+                            <span class="spec-value">${value}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
+        
+        // Цвета
+        const colorsHTML = product.colors ? `
+            <div class="product-colors">
+                ${product.colors.map(color => `
+                    <span class="color-tag">${color}</span>
+                `).join('')}
+            </div>
+        ` : '';
+
         productCard.innerHTML = `
+            ${badge}
             <div class="product-header">
                 <span class="product-icon">${product.image}</span>
                 <h3>${product.name}</h3>
             </div>
             <p>${product.description}</p>
-            ${product.colors ? `<p><small>🎨 ${product.colors.join(', ')}</small></p>` : ''}
-            ${product.flavors ? `<p><small>🍃 Вкусы: ${product.flavors.join(', ')}</small></p>` : ''}
+            ${specsHTML}
+            ${colorsHTML}
             <div class="product-footer">
                 <div class="product-price">${product.price}₽</div>
                 <button class="btn-secondary" onclick="addToCart('${product.id}')">
@@ -152,6 +179,18 @@ function loadProducts() {
         `;
         productsList.appendChild(productCard);
     });
+}
+
+// Вспомогательная функция для названий характеристик
+function getSpecName(key) {
+    const specNames = {
+        'material': 'Материал',
+        'height': 'Высота', 
+        'diameter': 'Диаметр',
+        'weight': 'Вес',
+        'volume': 'Объем'
+    };
+    return specNames[key] || key;
 }
 
 // Работа с корзиной
@@ -486,5 +525,4 @@ function showNotification(message) {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     initApp();
-
 });

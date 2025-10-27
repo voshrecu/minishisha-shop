@@ -3,7 +3,191 @@ let cart = [];
 let currentOrder = null;
 let orders = [];
 let referrals = [];
+let userDiscount = 0;
+let isReferralUser = false;
 
+// Обновляем функцию handleReferralParams
+function handleReferralParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    
+    if (refParam) {
+        const currentUserId = generateUserId();
+        
+        if (refParam !== currentUserId) {
+            // Проверяем, не был ли уже применен бонус
+            const existingReferral = referrals.find(ref => 
+                ref.referredId === currentUserId && ref.referrerId === refParam
+            );
+            
+            if (!existingReferral) {
+                // Сохраняем реферала
+                const referral = {
+                    id: Date.now(),
+                    referrerId: refParam,
+                    referredId: currentUserId,
+                    date: new Date().toISOString(),
+                    bonusApplied: false
+                };
+                
+                referrals.push(referral);
+                
+                // Даем скидку новому пользователю
+                isReferralUser = true;
+                userDiscount = 10; // 10% скидка
+                
+                // Начисляем бонус рефереру
+                applyReferrerBonus(refParam);
+                
+                saveToStorage();
+                
+                showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!');
+            }
+        }
+    }
+}
+
+// Функция для начисления бонуса рефереру
+function applyReferrerBonus(referrerId) {
+    const referrerReferrals = referrals.filter(ref => ref.referrerId === referrerId);
+    
+    // Увеличиваем скидку реферера на 5% за каждого приглашенного (максимум 30%)
+    const newDiscount = Math.min(10 + referrerReferrals.length * 5, 30);
+    
+    // Обновляем скидку реферера
+    updateUserDiscount(referrerId, newDiscount);
+}
+
+function updateUserDiscount(userId, discount) {
+    // В реальном приложении здесь бы сохранялось в базу данных
+    console.log(`Пользователь ${userId} получает скидку ${discount}%`);
+}
+
+// Обновляем функцию расчета итоговой суммы
+function calculateTotalPrice() {
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (isReferralUser && userDiscount > 0) {
+        const discountAmount = (subtotal * userDiscount) / 100;
+        return {
+            subtotal: subtotal,
+            discount: discountAmount,
+            total: subtotal - discountAmount
+        };
+    }
+    
+    return {
+        subtotal: subtotal,
+        discount: 0,
+        total: subtotal
+    };
+}
+
+// Обновляем функцию updateCartUI
+function updateCartUI() {
+    const cartItems = document.getElementById('cartItems');
+    const totalPrice = document.getElementById('totalPrice');
+    const cartCount = document.getElementById('cartCount');
+    
+    if (!cartItems || !totalPrice || !cartCount) return;
+    
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    cartCount.textContent = totalItems;
+    
+    cartItems.innerHTML = '';
+    
+    if (cart.length === 0) {
+        cartItems.innerHTML = `
+            <div class="empty-cart">
+                <div class="empty-cart-icon">🛒</div>
+                <p>Ваша корзина пуста</p>
+                <button onclick="showScreen('catalog')" class="btn-checkout" style="margin-top: 20px;">
+                    🛍️ Перейти к покупкам
+                </button>
+            </div>
+        `;
+        totalPrice.textContent = '0₽';
+        saveToStorage();
+        return;
+    }
+    
+    const prices = calculateTotalPrice();
+    
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        cartItem.innerHTML = `
+            <div class="cart-item-info">
+                <h4>${item.name}</h4>
+                <span class="item-price-single">${item.price}₽ × ${item.quantity}</span>
+            </div>
+            <div class="cart-item-actions">
+                <div class="quantity-controls">
+                    <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', -1)">-</button>
+                    <span class="quantity">${item.quantity}</span>
+                    <button class="quantity-btn" onclick="updateCartQuantity('${item.id}', 1)">+</button>
+                </div>
+                <div class="item-price">${itemTotal}₽</div>
+                <button class="btn-remove" onclick="removeFromCart('${item.id}')">
+                    🗑️
+                </button>
+            </div>
+        `;
+        cartItems.appendChild(cartItem);
+    });
+    
+    // Добавляем блок с информацией о скидке
+    if (prices.discount > 0) {
+        const discountInfo = document.createElement('div');
+        discountInfo.className = 'discount-info';
+        discountInfo.innerHTML = `
+            <div class="discount-line">
+                <span>Скидка ${userDiscount}%:</span>
+                <span class="discount-amount">-${prices.discount}₽</span>
+            </div>
+        `;
+        cartItems.appendChild(discountInfo);
+    }
+    
+    totalPrice.textContent = `${prices.total}₽`;
+    saveToStorage();
+}
+
+// Обновляем функцию createOrder
+function createOrder(orderData) {
+    const orderId = 'MS' + Date.now().toString().slice(-6);
+    const prices = calculateTotalPrice();
+    const prepayment = Math.ceil(prices.total * 0.5);
+    
+    const order = {
+        id: orderId,
+        ...orderData,
+        subtotal: prices.subtotal,
+        discount: prices.discount,
+        total: prices.total,
+        prepayment: prepayment,
+        status: 'new',
+        date: new Date().toLocaleDateString('ru-RU'),
+        time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        isReferralOrder: isReferralUser,
+        userDiscount: userDiscount
+    };
+    
+    orders.push(order);
+    currentOrder = order;
+    
+    // Сбрасываем реферальную скидку после первого заказа
+    if (isReferralUser) {
+        isReferralUser = false;
+        userDiscount = 0;
+    }
+    
+    saveToStorage();
+    showPaymentScreen(orderId, prepayment);
+    showNotification('✅ Заказ создан! Перейдите к оплате.');
+}
 // Товары магазина
 const products = [
     {
@@ -601,5 +785,6 @@ function debugApp() {
     console.log('Referrals:', referrals);
     console.log('Current Order:', currentOrder);
 }
+
 
 

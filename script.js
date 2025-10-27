@@ -125,7 +125,7 @@ function showScreen(screenId) {
     }
     
     // Активируем соответствующую кнопку навигации
-    const navButton = document.querySelector(`[data-screen="${screenId}"]`);
+    const navButton = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
     if (navButton) {
         navButton.classList.add('active');
     }
@@ -603,3 +603,4 @@ function debugApp() {
     console.log('Referrals:', referrals);
     console.log('Current Order:', currentOrder);
 }
+

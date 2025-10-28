@@ -104,11 +104,11 @@ function isAgeConfirmed() {
 function confirmAge() {
     localStorage.setItem('minishisha_ageConfirmed', 'true');
     showMainApp();
-    showNotification('🎉 Добро пожаловать в MiniShisha!');
+    showNotification('🎉 Добро пожаловать в MiniShisha!', 'success');
 }
 
 function rejectAge() {
-    showNotification('🚫 Доступ запрещен для лиц младше 18 лет');
+    showNotification('🚫 Доступ запрещен для лиц младше 18 лет', 'error');
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         setTimeout(() => Telegram.WebApp.close(), 2000);
     }
@@ -236,14 +236,12 @@ function addToCart(productId) {
     }
     
     updateCartUI();
-    showNotification(`✅ "${product.name}" добавлен в корзину!`);
-    showScreen('cart');
+    showNotification(`✅ "${product.name}" добавлен в корзину`, 'success');
 }
 
 function removeFromCart(productId) {
     cart = cart.filter(item => item.id !== productId);
     updateCartUI();
-    showNotification('🗑️ Товар удален из корзины');
 }
 
 function updateCartQuantity(productId, change) {
@@ -355,17 +353,25 @@ function updateCartUI() {
 // Оформление заказа
 function checkout() {
     if (cart.length === 0) {
-        showNotification('❌ Корзина пуста!');
+        showNotification('❌ Корзина пуста!', 'error');
         return;
     }
     
-    // Проверяем, что есть и шахта и колба
+    // Показываем/скрываем выбор цвета шахты в зависимости от товаров в корзине
     const hasShaft = cart.some(item => item.id === 'shaft');
-    const hasBowl = cart.some(item => item.id === 'bowl');
+    const shaftColorGroup = document.getElementById('shaftColorGroup');
     
-    if (!hasShaft || !hasBowl) {
-        showNotification('⚠️ Для работы кальяна нужны и шахта и колба!');
-        return;
+    if (hasShaft) {
+        shaftColorGroup.style.display = 'block';
+        // Делаем выбор цвета обязательным только если шахта в корзине
+        document.querySelectorAll('input[name="shaftColor"]').forEach(input => {
+            input.required = true;
+        });
+    } else {
+        shaftColorGroup.style.display = 'none';
+        document.querySelectorAll('input[name="shaftColor"]').forEach(input => {
+            input.required = false;
+        });
     }
     
     showScreen('checkout');
@@ -389,15 +395,15 @@ function processOrderForm(form) {
         telegram: formData.get('telegram').trim(),
         phone: formData.get('phone').trim(),
         address: formData.get('address').trim(),
-        shaftColor: formData.get('shaftColor'),
+        shaftColor: formData.get('shaftColor') || 'Не выбран',
         comment: formData.get('comment').trim(),
         cart: [...cart],
         timestamp: Date.now()
     };
     
     // Валидация
-    if (!orderData.name || !orderData.telegram || !orderData.phone || !orderData.address || !orderData.shaftColor) {
-        showNotification('❌ Заполните все обязательные поля!');
+    if (!orderData.name || !orderData.telegram || !orderData.phone || !orderData.address) {
+        showNotification('❌ Заполните все обязательные поля!', 'error');
         return;
     }
     
@@ -432,7 +438,7 @@ function createOrder(orderData) {
     
     saveToStorage();
     showPaymentScreen(orderId, prepayment);
-    showNotification('✅ Заказ создан! Перейдите к оплате.');
+    showNotification('✅ Заказ создан! Перейдите к оплате.', 'success');
 }
 
 function showPaymentScreen(orderId, amount) {
@@ -492,7 +498,7 @@ async function confirmPayment() {
         confirmBtn.innerHTML = originalText;
         confirmBtn.style.opacity = '1';
         
-        showNotification('❌ Ошибка подтверждения оплаты: ' + error.message);
+        showNotification('❌ Ошибка подтверждения оплаты: ' + error.message, 'error');
     }
 }
 
@@ -626,7 +632,6 @@ ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (с
                 chat_id: BOT_CONFIG.adminChatId,
                 text: message,
                 parse_mode: 'HTML'
-                // УБИРАЕМ КНОПКИ - только уведомление
             })
         });
         
@@ -803,12 +808,12 @@ function copyReferralLink() {
     linkInput.setSelectionRange(0, 99999);
     
     navigator.clipboard.writeText(linkInput.value).then(() => {
-        showNotification('✅ Ссылка скопирована! Делитесь с друзьями!');
+        showNotification('✅ Ссылка скопирована! Делитесь с друзьями!', 'success');
     }).catch(() => {
         // Fallback для старых браузеров
         linkInput.select();
         document.execCommand('copy');
-        showNotification('✅ Ссылка скопирована!');
+        showNotification('✅ Ссылка скопирована!', 'success');
     });
 }
 
@@ -846,7 +851,7 @@ function handleReferralParams() {
                 
                 saveToStorage();
                 
-                showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!');
+                showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!', 'success');
             }
         }
     }
@@ -868,54 +873,39 @@ function updateUserDiscount(userId, discount) {
     console.log(`Пользователь ${userId} получает скидку ${discount}%`);
 }
 
-// Вспомогательные функции
-function showNotification(message, duration = 3000) {
-    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-        Telegram.WebApp.showAlert(message);
-    } else {
-        // Создаем красивый toast вместо alert
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            color: var(--text-primary);
-            padding: 16px 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-lg);
-            z-index: 1000;
-            font-weight: 500;
-            max-width: 320px;
-            text-align: center;
-            line-height: 1.4;
-            animation: slideDown 0.3s ease;
-        `;
-        toast.innerHTML = message.replace(/\n/g, '<br>');
-        document.body.appendChild(toast);
-        
-        // Добавляем стили для анимации
-        if (!document.querySelector('#toast-styles')) {
-            const style = document.createElement('style');
-            style.id = 'toast-styles';
-            style.textContent = `
-                @keyframes slideDown {
-                    from { transform: translate(-50%, -100%); opacity: 0; }
-                    to { transform: translate(-50%, 0); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        setTimeout(() => {
-            toast.style.animation = 'slideDown 0.3s ease reverse';
+// УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+    
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: '💡'
+    };
+    
+    notification.innerHTML = `
+        <span class="notification-icon">${icons[type] || icons.info}</span>
+        <span class="notification-content">${message}</span>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Автоматическое удаление через 3 секунды
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'fadeOut 0.3s ease forwards';
             setTimeout(() => {
-                toast.remove();
+                if (notification.parentNode) {
+                    notification.remove();
+                }
             }, 300);
-        }, duration);
-    }
+        }
+    }, 3000);
 }
 
 // Инициализация при загрузке страницы

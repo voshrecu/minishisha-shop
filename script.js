@@ -461,6 +461,9 @@ function createOrder(orderData) {
     saveToStorage();
     showPaymentScreen(orderId, prepayment);
     showNotification('✅ Заказ создан! Перейдите к оплате.', 'success');
+    
+    // НЕ отправляем уведомление администратору здесь!
+    // Уведомление будет отправлено только при подтверждении оплаты
 }
 
 function showPaymentScreen(orderId, amount) {
@@ -505,28 +508,31 @@ async function confirmPayment() {
     
     try {
         if (currentOrder) {
-            // Обновляем статус заказа
-            updateOrderStatus(currentOrder.id, 'paid');
+            // Отправляем заказ администратору (способ подтверждения: кнопка)
+            const sendResult = await sendOrderToAdmin(currentOrder, 'button');
             
-            // Отправляем заказ администратору
-            const sendResult = await sendOrderToAdmin(currentOrder);
-            
-            // Показываем анимацию успеха
-            showPaymentSuccessAnimation();
-            
-            // Очищаем корзину
-            cart = [];
-            
-            // Сбрасываем реферальную скидку после первого заказа
-            if (isReferralUser) {
-                isReferralUser = false;
-                userDiscount = 0;
-                saveToStorage();
+            if (sendResult) {
+                // Обновляем статус заказа
+                updateOrderStatus(currentOrder.id, 'pending_confirmation');
+                
+                // Показываем анимацию успеха
+                showPaymentSuccessAnimation();
+                
+                // Очищаем корзину
+                cart = [];
+                
+                // Сбрасываем реферальную скидку после первого заказа
+                if (isReferralUser) {
+                    isReferralUser = false;
+                    userDiscount = 0;
+                    saveToStorage();
+                }
+                
+                // Обновляем интерфейс
+                updateCartUI();
+            } else {
+                throw new Error('Не удалось отправить заказ администратору');
             }
-            
-            // Обновляем интерфейс
-            updateCartUI();
-            
         } else {
             throw new Error('Нет активного заказа');
         }
@@ -537,6 +543,33 @@ async function confirmPayment() {
         confirmBtn.style.opacity = '1';
         
         showNotification('❌ Ошибка подтверждения оплаты: ' + error.message, 'error');
+    }
+}
+
+// Улучшенная функция подтверждения оплаты через менеджера
+async function confirmPaymentViaManager() {
+    if (!currentOrder) {
+        showNotification('❌ Нет активного заказа', 'error');
+        return;
+    }
+    
+    // Сразу отправляем заказ администратору
+    const sendResult = await sendOrderToAdmin(currentOrder, 'screenshot');
+    
+    if (sendResult) {
+        // Обновляем статус заказа
+        updateOrderStatus(currentOrder.id, 'pending_confirmation');
+        
+        // Показываем инструкции
+        showPaymentInstructions();
+        
+        // Открываем чат с менеджером
+        openManagerChat(true);
+        
+        showNotification('📤 Заказ отправлен менеджеру! Ожидайте подтверждения.', 'success');
+    } else {
+        showNotification('❌ Ошибка отправки заказа. Свяжитесь с менеджером напрямую.', 'error');
+        openManagerChat(true);
     }
 }
 
@@ -631,17 +664,12 @@ function closeSuccessAnimation() {
     }
 }
 
-// Улучшенная функция связи с менеджером с отслеживанием
+// Улучшенная функция связи с менеджером
 function openManagerChat(withPayment = false) {
     let message;
     
     if (withPayment && currentOrder) {
         message = `Здравствуйте! По заказу #${currentOrder.id}. Прикладываю скриншот оплаты. Сумма: ${currentOrder.prepayment}₽`;
-        
-        // Сразу отмечаем заказ как "ожидает подтверждения"
-        updateOrderStatus(currentOrder.id, 'pending_confirmation');
-        showNotification('📞 Заказ переведен в статус "Ожидает подтверждения". Менеджер проверит оплату.', 'info');
-        
     } else if (currentOrder) {
         message = `Здравствуйте! У меня вопрос по заказу #${currentOrder.id}`;
     } else {
@@ -652,21 +680,6 @@ function openManagerChat(withPayment = false) {
     
     // Открываем в новом окне
     window.open(telegramUrl, '_blank');
-    
-    // Если это подтверждение оплаты, показываем дополнительную информацию
-    if (withPayment) {
-        showPaymentInstructions();
-    }
-}
-
-// Альтернативная функция для подтверждения оплаты через менеджера
-function confirmPaymentViaManager() {
-    if (!currentOrder) {
-        showNotification('❌ Нет активного заказа', 'error');
-        return;
-    }
-    
-    openManagerChat(true); // true - указывает что это подтверждение оплаты
 }
 
 // Функция для показа инструкций после отправки скриншота
@@ -719,12 +732,19 @@ function showPaymentInstructions() {
     }
 }
 
-// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ С РЕФЕРАЛЬНОЙ ИНФОРМАЦИЕЙ
-async function sendOrderToAdmin(orderData) {
+// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ С КНОПКАМИ УПРАВЛЕНИЯ
+async function sendOrderToAdmin(orderData, confirmationMethod = 'button') {
     const referrerInfo = orderData.referrerId ? `\n🎯 <b>Реферальный заказ от пользователя:</b> ${orderData.referrerId}` : '';
+    
+    // Определяем способ подтверждения
+    const confirmationText = confirmationMethod === 'button' 
+        ? '🟢 <b>Подтверждение:</b> Через кнопку "Я оплатил"'
+        : '📤 <b>Подтверждение:</b> Через отправку скриншота менеджеру';
     
     const message = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
+
+${confirmationText}
 
 👤 <b>Клиент:</b> ${orderData.name}
 📱 <b>Telegram:</b> ${orderData.telegram}
@@ -748,8 +768,6 @@ ${referrerInfo}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
 👤 <b>ID пользователя:</b> ${orderData.userId}
-
-💬 <b>Клиент должен отправить скриншот оплаты!</b>
     `.trim();
 
     try {
@@ -772,7 +790,7 @@ ${referrerInfo}
         
     } catch (error) {
         console.error('Error sending order to admin:', error);
-        return true;
+        return false;
     }
 }
 

@@ -63,13 +63,13 @@
                         <span class="nav-icon">📋</span>
                         <span class="nav-text">Заказы</span>
                     </button>
-                    <button class="nav-item" data-screen="support" onclick="showScreen('support')">
-                        <span class="nav-icon">💬</span>
-                        <span class="nav-text">Помощь</span>
-                    </button>
                     <button class="nav-item" data-screen="referral" onclick="showScreen('referral')">
                         <span class="nav-icon">🎁</span>
                         <span class="nav-text">Рефералы</span>
+                    </button>
+                    <button class="nav-item" data-screen="support" onclick="showScreen('support')">
+                        <span class="nav-icon">💬</span>
+                        <span class="nav-text">Помощь</span>
                     </button>
                 </div>
             </nav>
@@ -79,8 +79,8 @@
                 <!-- Catalog Screen -->
                 <div id="catalog" class="screen active">
                     <div class="screen-header">
-                        <h2>Каталог товаров</h2>
-                        <p>Выберите комплектующие для вашего кальяна</p>
+                        <h2>ВНИМАНИЕ!</h2>
+                        <p>Кальян не будет функционировать при отсутствии любого из основных компонентов. Это единая система, где шахта и колба одинаково важны.</p>
                     </div>
                     <div id="productsList" class="products-grid"></div>
                 </div>
@@ -238,6 +238,67 @@
                     <div id="ordersList" class="orders-list"></div>
                 </div>
 
+                <!-- Referral Screen -->
+                <div id="referral" class="screen">
+                    <div class="screen-header">
+                        <h2>Приглашай друзей</h2>
+                        <p>Получайте скидки за каждого приглашенного друга</p>
+                    </div>
+                    <div class="referral-content">
+                        <div class="benefits-card">
+                            <h3>🎁 Как это работает</h3>
+                            <div class="benefits-list">
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">👥</span>
+                                    <div class="benefit-text">
+                                        <strong>Пригласи друга</strong>
+                                        <span>Отправьте вашу реферальную ссылку</span>
+                                    </div>
+                                </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">💰</span>
+                                    <div class="benefit-text">
+                                        <strong>Друг получает скидку 10%</strong>
+                                        <span>На первый заказ по вашей ссылке</span>
+                                    </div>
+                                </div>
+                                <div class="benefit-item">
+                                    <span class="benefit-icon">🎯</span>
+                                    <div class="benefit-text">
+                                        <strong>Вы получаете +5% скидки</strong>
+                                        <span>За каждого приглашенного (до 30%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="referral-link-card">
+                            <h3>📤 Ваша реферальная ссылка</h3>
+                            <div class="link-container">
+                                <input type="text" id="referralLink" readonly class="referral-input">
+                                <button onclick="copyReferralLink()" class="btn-copy">
+                                    <span class="btn-icon">📋</span>
+                                    Копировать
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="stats-card">
+                            <h3>📊 Ваша статистика</h3>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="referralCount">0</div>
+                                    <div class="stat-label">Приглашено друзей</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="discountPercent">0%</div>
+                                    <div class="stat-label">Ваша скидка</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Support Screen -->
                 <div id="support" class="screen">
                     <div class="screen-header">
@@ -298,4 +359,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-

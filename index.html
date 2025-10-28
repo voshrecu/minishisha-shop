@@ -28,6 +28,9 @@
             </div>
         </div>
 
+        <!-- Notification Container -->
+        <div id="notificationContainer" class="notification-container"></div>
+
         <!-- Main App -->
         <div id="mainApp" class="main-app hidden">
             <!-- Header -->
@@ -79,8 +82,8 @@
                 <!-- Catalog Screen -->
                 <div id="catalog" class="screen active">
                     <div class="screen-header">
-                        <h2>ВНИМАНИЕ!</h2>
-                        <p>Кальян не будет функционировать при отсутствии любого из основных компонентов. Это единая система, где шахта и колба одинаково важны.</p>
+                        <h2>Каталог товаров</h2>
+                        <p>Выберите комплектующие для вашего кальяна</p>
                     </div>
                     <div id="productsList" class="products-grid"></div>
                 </div>
@@ -131,31 +134,31 @@
                         </div>
                         
                         <!-- Выбор цвета шахты -->
-                        <div class="form-group">
+                        <div class="form-group" id="shaftColorGroup" style="display: none;">
                             <label>Цвет шахты *</label>
                             <div class="color-selection">
                                 <label class="color-option">
-                                    <input type="radio" name="shaftColor" value="⚫️ Черный" required>
+                                    <input type="radio" name="shaftColor" value="⚫️ Черный">
                                     <span class="color-dot black"></span>
                                     <span>Черный</span>
                                 </label>
                                 <label class="color-option">
-                                    <input type="radio" name="shaftColor" value="🔴 Красный" required>
+                                    <input type="radio" name="shaftColor" value="🔴 Красный">
                                     <span class="color-dot red"></span>
                                     <span>Красный</span>
                                 </label>
                                 <label class="color-option">
-                                    <input type="radio" name="shaftColor" value="🟢 Зеленый" required>
+                                    <input type="radio" name="shaftColor" value="🟢 Зеленый">
                                     <span class="color-dot green"></span>
                                     <span>Зеленый</span>
                                 </label>
                                 <label class="color-option">
-                                    <input type="radio" name="shaftColor" value="🔵 Синий" required>
+                                    <input type="radio" name="shaftColor" value="🔵 Синий">
                                     <span class="color-dot blue"></span>
                                     <span>Синий</span>
                                 </label>
                                 <label class="color-option">
-                                    <input type="radio" name="shaftColor" value="⚪️ Серебристый" required>
+                                    <input type="radio" name="shaftColor" value="⚪️ Серебристый">
                                     <span class="color-dot silver"></span>
                                     <span>Серебристый</span>
                                 </label>

@@ -75,8 +75,8 @@
                 <!-- Catalog Screen -->
                 <div id="catalog" class="screen active">
                     <div class="screen-header">
-                        <h2>ВНИМАНИЕ!</h2>
-                        <p>Кальян не будет функционировать при отсутствии любого из основных компонентов. Это единая система, где шахта и колба одинаково важны.</p>
+                        <h2>Каталог товаров</h2>
+                        <p>Выберите комплектующие для вашего кальяна</p>
                     </div>
                     <div id="productsList" class="products-grid"></div>
                 </div>
@@ -288,60 +288,6 @@
                     </div>
                 </div>
             </main>
-        </div>
-    </div>
-
-    <!-- Slot Machine Popup -->
-    <div id="slotPopup" class="slot-popup hidden">
-        <div class="slot-container">
-            <div class="slot-header">
-                <h2>🎰 SLOT MACHINE</h2>
-                <p>Крути и выигрывай скидки!</p>
-                <button class="slot-close" onclick="closeSlotMachine()">✕</button>
-            </div>
-            
-            <div class="slot-machine">
-                <div class="reels">
-                    <div class="reel">🎯</div>
-                    <div class="reel">🔥</div>
-                    <div class="reel">💎</div>
-                </div>
-                <div class="slot-pointer">▼</div>
-            </div>
-            
-            <div class="slot-info">
-                <div class="current-discount">
-                    Текущая скидка: <span id="currentDiscount">0%</span>
-                </div>
-                <div class="spins-left">
-                    Спинов: <span id="spinCount">1</span>
-                </div>
-            </div>
-            
-            <button id="spinButton" class="spin-btn" onclick="spinSlotMachine()">
-                🎯 КРУТИТЬ (1)
-            </button>
-            
-            <div class="slot-actions">
-                <button class="action-btn" onclick="shareForSpin()">
-                    📤 Поделиться (+1 спин)
-                </button>
-                <button class="action-btn" onclick="inviteFriend()">
-                    👥 Пригласить друга (+2 спина)
-                </button>
-                <button class="action-btn" onclick="orderForSpins()">
-                    🛒 Сделать заказ (+2 спина)
-                </button>
-            </div>
-            
-            <div class="slot-limits">
-                <h4>📊 Лимиты приглашений:</h4>
-                <div id="inviteLimits">
-                    <div>📅 Сегодня: 0/2</div>
-                    <div>📅 Неделя: 0/5</div>
-                    <div>📅 Месяц: 0/15</div>
-                </div>
-            </div>
         </div>
     </div>
 

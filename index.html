@@ -177,87 +177,87 @@
                 </div>
 
                 <!-- Payment Screen -->
-                <div id="payment" class="screen">
-                    <div class="screen-header">
-                        <h2>Оплата заказа</h2>
-                        <p>Переведите предоплату для подтверждения заказа</p>
-                    </div>
-                    <div class="payment-card">
-                        <div class="order-info">
-                            <div class="order-id">Заказ #<span id="orderId">MS12345</span></div>
-                            <div class="payment-amount">
-                                <span>Сумма к оплате:</span>
-                                <span id="paymentAmount" class="amount">0₽</span>
-                            </div>
-                            <div class="prepayment-note">*Предоплата 50% от суммы заказа</div>
-                        </div>
+<div id="payment" class="screen">
+    <div class="screen-header">
+        <h2>Оплата заказа</h2>
+        <p>Переведите предоплату для подтверждения заказа</p>
+    </div>
+    <div class="payment-card">
+        <div class="order-info">
+            <div class="order-id">Заказ #<span id="orderId">MS12345</span></div>
+            <div class="payment-amount">
+                <span>Сумма к оплате:</span>
+                <span id="paymentAmount" class="amount">0₽</span>
+            </div>
+            <div class="prepayment-note">*Предоплата 50% от суммы заказа</div>
+        </div>
 
-                        <div class="payment-methods">
-                            <div class="method-card">
-                                <div class="method-header">
-                                    <span class="bank-icon">🏦</span>
-                                    <span class="bank-name">Ozonбанк</span>
-                                </div>
-                                <div class="card-details">
-                                    <div class="card-number">2204 3204 3944 0142</div>
-                                    <div class="card-holder">Роман Васильевич</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="payment-instructions">
-                            <div class="instruction-item">
-                                <span class="instruction-icon">💳</span>
-                                <span>Переведите <strong id="prepaymentAmount">0₽</strong> на указанные реквизиты</span>
-                            </div>
-                            <div class="instruction-item">
-                                <span class="instruction-icon">📱</span>
-                                <span>После оплаты нажмите "Я оплатил" или отправьте скриншот менеджеру</span>
-                            </div>
-                            <div class="instruction-item">
-                                <span class="instruction-icon">⏰</span>
-                                <span>Заказ будет обработан в течение 15 минут после подтверждения оплаты</span>
-                            </div>
-                        </div>
-
-                        <div class="payment-actions">
-                            <button onclick="confirmPayment()" class="btn-payment-confirm">
-                                <span class="btn-icon">✅</span>
-                                Я оплатил
-                            </button>
-                            
-                            <div style="text-align: center; margin: 15px 0; color: var(--text-secondary); font-size: 14px;">
-                                или
-                            </div>
-                            
-                            <button onclick="confirmPaymentViaManager()" class="btn-payment-support">
-                                <span class="btn-icon">📤</span>
-                                Отправить скриншот менеджеру
-                            </button>
-                            
-                            <button onclick="openManagerChat()" class="btn-payment-support" style="background: var(--surface-light); color: var(--text-primary);">
-                                <span class="btn-icon">💬</span>
-                                Задать вопрос менеджеру
-                            </button>
-                            
-                            <button onclick="showScreen('catalog')" class="btn-payment-back">
-                                ← Вернуться в магазин
-                            </button>
-                        </div>
-                        
-                        <!-- Дополнительная информация -->
-                        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <span style="font-size: 18px;">💡</span>
-                                <strong style="color: var(--text-primary);">Важно!</strong>
-                            </div>
-                            <p style="color: var(--text-secondary); font-size: 13px; margin: 0; line-height: 1.4;">
-                                Если вы уже отправили скриншот менеджеру, статус заказа автоматически обновится. 
-                                Вы можете закрыть эту страницу и проверить статус в разделе "Заказы".
-                            </p>
-                        </div>
-                    </div>
+        <div class="payment-methods">
+            <div class="method-card">
+                <div class="method-header">
+                    <span class="bank-icon">🏦</span>
+                    <span class="bank-name">Ozonбанк</span>
                 </div>
+                <div class="card-details">
+                    <div class="card-number">2204 3204 3944 0142</div>
+                    <div class="card-holder">Роман Васильевич</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-instructions">
+            <div class="instruction-item">
+                <span class="instruction-icon">💳</span>
+                <span>Переведите <strong id="prepaymentAmount">0₽</strong> на указанные реквизиты</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-icon">📱</span>
+                <span>После оплаты нажмите "Я оплатил" или отправьте скриншот менеджеру</span>
+            </div>
+            <div class="instruction-item">
+                <span class="instruction-icon">⏰</span>
+                <span>Заказ будет обработан в течение 15 минут после подтверждения оплаты</span>
+            </div>
+        </div>
+
+        <div class="payment-actions">
+            <button onclick="confirmPayment()" class="btn-payment-confirm">
+                <span class="btn-icon">✅</span>
+                Я оплатил
+            </button>
+            
+            <div style="text-align: center; margin: 15px 0; color: var(--text-secondary); font-size: 14px;">
+                или
+            </div>
+            
+            <button onclick="confirmPaymentViaManager()" class="btn-payment-support">
+                <span class="btn-icon">📤</span>
+                Отправить скриншот менеджеру
+            </button>
+            
+            <button onclick="openManagerChat()" class="btn-payment-support" style="background: var(--surface-light); color: var(--text-primary);">
+                <span class="btn-icon">💬</span>
+                Задать вопрос менеджеру
+            </button>
+            
+            <button onclick="showScreen('catalog')" class="btn-payment-back">
+                ← Вернуться в магазин
+            </button>
+        </div>
+        
+        <!-- Дополнительная информация -->
+        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <span style="font-size: 18px;">💡</span>
+                <strong style="color: var(--text-primary);">Важно!</strong>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 13px; margin: 0; line-height: 1.4;">
+                После подтверждения оплаты администратором, статус заказа автоматически обновится. 
+                Вы можете закрыть эту страницу и проверить статус в разделе "Заказы".
+            </p>
+        </div>
+    </div>
+</div>
 
                 <!-- Orders Screen -->
                 <div id="orders" class="screen">
@@ -389,3 +389,4 @@
     <script src="script.js"></script>
 </body>
 </html>
+

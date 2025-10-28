@@ -414,7 +414,7 @@ function processOrderForm(form) {
         comment: formData.get('comment').trim(),
         cart: [...cart],
         timestamp: Date.now(),
-        referrerId: getReferrerIdFromStorage() // Добавляем ID реферера в заказ
+        referrerId: getReferrerIdFromStorage()
     };
     
     // Валидация
@@ -447,7 +447,7 @@ function createOrder(orderData) {
         time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
         isReferralOrder: isReferralUser,
         userDiscount: userDiscount,
-        userId: userId // Добавляем ID пользователя
+        userId: userId
     };
     
     orders.push(order);
@@ -461,9 +461,6 @@ function createOrder(orderData) {
     saveToStorage();
     showPaymentScreen(orderId, prepayment);
     showNotification('✅ Заказ создан! Перейдите к оплате.', 'success');
-    
-    // НЕ отправляем уведомление администратору здесь!
-    // Уведомление будет отправлено только при подтверждении оплаты
 }
 
 function showPaymentScreen(orderId, amount) {
@@ -496,175 +493,109 @@ function updateOrderStatus(orderId, status) {
     return false;
 }
 
-// ОБНОВЛЕННАЯ ФУНКЦИЯ ОПЛАТЫ С ВИЗУАЛЬНЫМ ПОДТВЕРЖДЕНИЕМ
-async function confirmPayment() {
-    const confirmBtn = document.querySelector('.btn-payment-confirm');
-    const originalText = confirmBtn.innerHTML;
-    
-    // Блокируем кнопку и показываем загрузку
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = '<span class="btn-icon">⏳</span> Подтверждаем...';
-    confirmBtn.style.opacity = '0.7';
-    
-    try {
-        if (currentOrder) {
-            // Отправляем заказ администратору (способ подтверждения: кнопка)
-            const sendResult = await sendOrderToAdmin(currentOrder, 'button');
-            
-            if (sendResult) {
-                // Обновляем статус заказа
-                updateOrderStatus(currentOrder.id, 'pending_confirmation');
-                
-                // Показываем анимацию успеха
-                showPaymentSuccessAnimation();
-                
-                // Очищаем корзину
-                cart = [];
-                
-                // Сбрасываем реферальную скидку после первого заказа
-                if (isReferralUser) {
-                    isReferralUser = false;
-                    userDiscount = 0;
-                    saveToStorage();
-                }
-                
-                // Обновляем интерфейс
-                updateCartUI();
-            } else {
-                throw new Error('Не удалось отправить заказ администратору');
-            }
-        } else {
-            throw new Error('Нет активного заказа');
-        }
-    } catch (error) {
-        // Восстанавливаем кнопку при ошибке
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = originalText;
-        confirmBtn.style.opacity = '1';
-        
-        showNotification('❌ Ошибка подтверждения оплаты: ' + error.message, 'error');
-    }
-}
-
-// Улучшенная функция подтверждения оплаты через менеджера
-async function confirmPaymentViaManager() {
+// ОСНОВНАЯ ФУНКЦИЯ - ОТПРАВКА ЧЕКА МЕНЕДЖЕРУ
+async function sendReceiptToManager() {
     if (!currentOrder) {
         showNotification('❌ Нет активного заказа', 'error');
         return;
     }
     
-    // Сразу отправляем заказ администратору
-    const sendResult = await sendOrderToAdmin(currentOrder, 'screenshot');
+    const sendBtn = document.querySelector('.btn-payment-confirm');
+    const originalText = sendBtn.innerHTML;
     
-    if (sendResult) {
-        // Обновляем статус заказа
-        updateOrderStatus(currentOrder.id, 'pending_confirmation');
+    // Блокируем кнопку и показываем загрузку
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="btn-icon">⏳</span> Отправляем...';
+    sendBtn.style.opacity = '0.7';
+    
+    try {
+        // Отправляем заказ администратору
+        const sendResult = await sendOrderToAdmin(currentOrder);
         
-        // Показываем инструкции
-        showPaymentInstructions();
+        if (sendResult) {
+            // Обновляем статус заказа на "активный"
+            updateOrderStatus(currentOrder.id, 'active');
+            
+            // Показываем успешное сообщение
+            showSuccessMessage();
+            
+            // Очищаем корзину
+            cart = [];
+            
+            // Сбрасываем реферальную скидку после первого заказа
+            if (isReferralUser) {
+                isReferralUser = false;
+                userDiscount = 0;
+                saveToStorage();
+            }
+            
+            // Обновляем интерфейс
+            updateCartUI();
+            
+        } else {
+            throw new Error('Не удалось отправить заказ');
+        }
+    } catch (error) {
+        // Восстанавливаем кнопку при ошибке
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalText;
+        sendBtn.style.opacity = '1';
         
-        // Открываем чат с менеджером
-        openManagerChat(true);
-        
-        showNotification('📤 Заказ отправлен менеджеру! Ожидайте подтверждения.', 'success');
-    } else {
-        showNotification('❌ Ошибка отправки заказа. Свяжитесь с менеджером напрямую.', 'error');
-        openManagerChat(true);
+        showNotification('❌ Ошибка отправки заказа: ' + error.message, 'error');
     }
 }
 
-// АНИМАЦИЯ УСПЕШНОЙ ОПЛАТЫ
-function showPaymentSuccessAnimation() {
+// Сообщение об успешной отправке
+function showSuccessMessage() {
     const paymentScreen = document.getElementById('payment');
     
-    // Создаем элемент для анимации
-    const successOverlay = document.createElement('div');
-    successOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(16, 185, 129, 0.95);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        color: white;
-        text-align: center;
-        padding: 20px;
-        animation: fadeIn 0.5s ease;
-    `;
-    
-    successOverlay.innerHTML = `
-        <div style="font-size: 80px; margin-bottom: 20px; animation: bounce 1s ease infinite;">🎉</div>
-        <h2 style="font-size: 24px; margin-bottom: 10px; color: white; font-weight: bold;">Оплата подтверждена!</h2>
-        <p style="margin-bottom: 20px; font-size: 16px; opacity: 0.9;">Заказ #${currentOrder.id} успешно оформлен</p>
-        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.3);">
-            <p style="margin: 5px 0;">📞 <strong>С вами свяжется менеджер</strong> в течение 15 минут</p>
-            <p style="margin: 5px 0;">💬 <strong>Не забудьте отправить скриншот оплаты менеджеру</strong></p>
-            <p style="margin: 5px 0;">🚚 <strong>Доставка:</strong> 1-3 дня через СДЭК</p>
-        </div>
-        <button onclick="closeSuccessAnimation()" style="
-            background: white; 
-            color: #10b981; 
-            border: none; 
-            padding: 12px 24px; 
-            border-radius: 10px; 
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-            transition: transform 0.2s ease;
-        ">
-            👍 Понятно
-        </button>
-    `;
-    
-    // Добавляем стили для анимации
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(successOverlay);
-    
-    // Добавляем hover эффект для кнопки
-    const button = successOverlay.querySelector('button');
-    button.addEventListener('mouseover', function() {
-        this.style.transform = 'scale(1.05)';
-    });
-    button.addEventListener('mouseout', function() {
-        this.style.transform = 'scale(1)';
-    });
-}
+    if (paymentScreen) {
+        paymentScreen.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 80px; margin-bottom: 20px;">✅</div>
+                <h2 style="margin-bottom: 15px; color: var(--text-primary);">Заказ отправлен менеджеру!</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 25px; font-size: 16px;">
+                    Заказ #${currentOrder.id} успешно создан и отправлен менеджеру.
+                </p>
+                
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 20px; margin: 25px 0;">
+                    <h3 style="color: var(--success); margin-bottom: 15px;">📋 Что дальше?</h3>
+                    <div style="text-align: left;">
+                        <p style="margin: 10px 0;">💬 <strong>Отправьте скриншот оплаты</strong> менеджеру в Telegram</p>
+                        <p style="margin: 10px 0;">🕒 <strong>Менеджер свяжется с вами</strong> в течение 15 минут</p>
+                        <p style="margin: 10px 0;">🚚 <strong>Доставка займет 1-3 дня</strong> через СДЭК</p>
+                        <p style="margin: 10px 0;">📱 <strong>Статус заказа:</strong> Активный</p>
+                    </div>
+                </div>
 
-function closeSuccessAnimation() {
-    const overlay = document.querySelector('div[style*="rgba(16, 185, 129"]');
-    if (overlay) {
-        overlay.style.animation = 'fadeIn 0.5s ease reverse';
-        setTimeout(() => {
-            overlay.remove();
-            showScreen('catalog');
-            
-            // Добавляем анимацию успеха на главном экране
-            document.querySelector('.app-main').classList.add('success-animation');
-            setTimeout(() => {
-                document.querySelector('.app-main').classList.remove('success-animation');
-            }, 1000);
-        }, 500);
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 30px;">
+                    <button onclick="openManagerChat(true)" class="btn-checkout" style="background: var(--success);">
+                        <span class="btn-icon">📤</span>
+                        Отправить скриншот менеджеру
+                    </button>
+                    
+                    <button onclick="showScreen('orders')" class="btn-checkout" style="background: var(--primary-light);">
+                        <span class="btn-icon">📋</span>
+                        Посмотреть мои заказы
+                    </button>
+                    
+                    <button onclick="showScreen('catalog')" class="btn-checkout" style="background: var(--surface-light); color: var(--text-primary);">
+                        <span class="btn-icon">🛍️</span>
+                        Продолжить покупки
+                    </button>
+                </div>
+                
+                <div style="margin-top: 25px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">
+                        💡 <strong>Важно:</strong> Не забудьте отправить скриншот оплаты менеджеру для подтверждения заказа
+                    </p>
+                </div>
+            </div>
+        `;
     }
 }
 
-// Улучшенная функция связи с менеджером
+// Функция связи с менеджером
 function openManagerChat(withPayment = false) {
     let message;
     
@@ -677,74 +608,15 @@ function openManagerChat(withPayment = false) {
     }
     
     const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(message)}`;
-    
-    // Открываем в новом окне
     window.open(telegramUrl, '_blank');
 }
 
-// Функция для показа инструкций после отправки скриншота
-function showPaymentInstructions() {
-    const instructions = `
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 48px; margin-bottom: 15px;">📤</div>
-            <h3 style="margin-bottom: 10px; color: var(--text-primary);">Скриншот отправлен!</h3>
-            <p style="color: var(--text-secondary); margin-bottom: 15px;">
-                Менеджер проверит оплату в течение 15 минут и обновит статус заказа.
-            </p>
-            <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid rgba(59, 130, 246, 0.3);">
-                <p style="margin: 5px 0; font-size: 14px;">🕒 <strong>Статус заказа:</strong> Ожидает подтверждения</p>
-                <p style="margin: 5px 0; font-size: 14px;">💬 <strong>Вы получите уведомление</strong> когда менеджер подтвердит оплату</p>
-                <p style="margin: 5px 0; font-size: 14px;">📱 <strong>Можете закрыть эту страницу</strong> - статус сохранится</p>
-            </div>
-            <button onclick="showScreen('orders')" style="
-                background: var(--gradient);
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 10px;
-                font-weight: bold;
-                cursor: pointer;
-                font-size: 14px;
-                margin: 5px;
-            ">
-                📋 Посмотреть заказы
-            </button>
-            <button onclick="showScreen('catalog')" style="
-                background: var(--surface-light);
-                color: var(--text-primary);
-                border: 1px solid var(--border);
-                padding: 12px 24px;
-                border-radius: 10px;
-                font-weight: bold;
-                cursor: pointer;
-                font-size: 14px;
-                margin: 5px;
-            ">
-                🛍️ Продолжить покупки
-            </button>
-        </div>
-    `;
-    
-    // Заменяем содержимое экрана оплаты
-    const paymentScreen = document.getElementById('payment');
-    if (paymentScreen) {
-        paymentScreen.innerHTML = instructions;
-    }
-}
-
-// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ С КНОПКАМИ УПРАВЛЕНИЯ
-async function sendOrderToAdmin(orderData, confirmationMethod = 'button') {
+// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ
+async function sendOrderToAdmin(orderData) {
     const referrerInfo = orderData.referrerId ? `\n🎯 <b>Реферальный заказ от пользователя:</b> ${orderData.referrerId}` : '';
-    
-    // Определяем способ подтверждения
-    const confirmationText = confirmationMethod === 'button' 
-        ? '🟢 <b>Подтверждение:</b> Через кнопку "Я оплатил"'
-        : '📤 <b>Подтверждение:</b> Через отправку скриншота менеджеру';
     
     const message = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
-
-${confirmationText}
 
 👤 <b>Клиент:</b> ${orderData.name}
 📱 <b>Telegram:</b> ${orderData.telegram}
@@ -768,6 +640,8 @@ ${referrerInfo}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
 👤 <b>ID пользователя:</b> ${orderData.userId}
+
+💬 <b>Клиент должен отправить скриншот оплаты в личные сообщения!</b>
     `.trim();
 
     try {
@@ -888,17 +762,15 @@ function loadOrdersUI() {
 
 function getStatusText(status) {
     const statusMap = {
-        'new': '🆕 Ожидает оплаты',
-        'pending_confirmation': '📞 Ожидает подтверждения',
-        'paid': '💳 Оплачен',
-        'accepted': '✅ Принят',
+        'new': '🆕 Новый',
+        'active': '✅ Активный',
         'completed': '🚚 Отправлен',
         'cancelled': '❌ Отменен'
     };
     return statusMap[status] || status;
 }
 
-// ОБНОВЛЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
+// Реферальная система
 function loadReferralUI() {
     const referralLinkElement = document.getElementById('referralLink');
     const referralCountElement = document.getElementById('referralCount');
@@ -907,30 +779,24 @@ function loadReferralUI() {
     if (!referralLinkElement || !referralCountElement || !discountPercentElement) return;
     
     const referralLink = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
-    
     referralLinkElement.value = referralLink;
     
-    // Обновляем статистику
     const userReferrals = getSuccessfulReferrals();
     referralCountElement.textContent = userReferrals.length;
     
-    // Рассчитываем скидку на основе успешных рефералов
     const discount = calculateUserDiscount();
     discountPercentElement.textContent = `${discount}%`;
     
-    // Обновляем скидку пользователя
     userDiscount = discount;
     saveToStorage();
 }
 
-// Получение успешных рефералов (тех, кто совершил заказ)
 function getSuccessfulReferrals() {
     return referrals.filter(ref => 
         ref.referrerId === userId && ref.bonusApplied === true
     );
 }
 
-// Расчет скидки пользователя
 function calculateUserDiscount() {
     const successfulReferrals = getSuccessfulReferrals();
     return Math.min(10 + successfulReferrals.length * 5, 30);
@@ -946,29 +812,24 @@ function copyReferralLink() {
     navigator.clipboard.writeText(linkInput.value).then(() => {
         showNotification('✅ Ссылка скопирована! Делитесь с друзьями!', 'success');
     }).catch(() => {
-        // Fallback для старых браузеров
         linkInput.select();
         document.execCommand('copy');
         showNotification('✅ Ссылка скопирована!', 'success');
     });
 }
 
-// Обработка реферальных параметров
 function handleReferralParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const refParam = urlParams.get('ref');
     
     if (refParam && refParam !== userId) {
-        // Сохраняем ID реферера
         saveReferrerId(refParam);
         
-        // Проверяем, не был ли уже применен бонус
         const existingReferral = referrals.find(ref => 
             ref.referredId === userId && ref.referrerId === refParam
         );
         
         if (!existingReferral) {
-            // Сохраняем реферала
             const referral = {
                 id: Date.now(),
                 referrerId: refParam,
@@ -978,54 +839,41 @@ function handleReferralParams() {
             };
             
             referrals.push(referral);
-            
-            // Даем скидку новому пользователю
             isReferralUser = true;
-            userDiscount = 10; // 10% скидка
+            userDiscount = 10;
             
             saveToStorage();
-            
             showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!', 'success');
         }
     }
 }
 
-// Сохранение ID реферера
 function saveReferrerId(referrerId) {
     localStorage.setItem('minishisha_referrerId', referrerId);
 }
 
-// Получение ID реферера из хранилища
 function getReferrerIdFromStorage() {
     return localStorage.getItem('minishisha_referrerId');
 }
 
-// Функция для начисления бонуса рефереру
 function applyReferrerBonus(referrerId) {
-    // Находим реферала в списке
     const referral = referrals.find(ref => 
         ref.referrerId === referrerId && ref.referredId === userId && !ref.bonusApplied
     );
     
     if (referral) {
-        // Отмечаем, что бонус применен
         referral.bonusApplied = true;
         referral.bonusAppliedAt = new Date().toISOString();
-        
         saveToStorage();
         
-        // Показываем уведомление пользователю, если это он
         if (userId === referrerId) {
             showNotification('🎉 Ваш друг совершил заказ! Ваша скидка увеличена!', 'success');
-            // Обновляем UI реферальной системы
             loadReferralUI();
         }
-        
-        console.log(`Бонус применен для реферера: ${referrerId}`);
     }
 }
 
-// УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ
+// Уведомления
 function showNotification(message, type = 'info') {
     const container = document.getElementById('notificationContainer');
     if (!container) return;
@@ -1047,7 +895,6 @@ function showNotification(message, type = 'info') {
     
     container.appendChild(notification);
     
-    // Автоматическое удаление через 3 секунды
     setTimeout(() => {
         if (notification.parentNode) {
             notification.style.animation = 'fadeOut 0.3s ease forwards';
@@ -1065,15 +912,3 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Страница загружена, инициализируем приложение...');
     initApp();
 });
-
-// Дебаг функции для проверки работы
-function debugApp() {
-    console.log('Cart:', cart);
-    console.log('Orders:', orders);
-    console.log('Referrals:', referrals);
-    console.log('Current Order:', currentOrder);
-    console.log('User Discount:', userDiscount);
-    console.log('Is Referral User:', isReferralUser);
-    console.log('User ID:', userId);
-    console.log('Referrer ID:', getReferrerIdFromStorage());
-}

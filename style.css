@@ -199,7 +199,7 @@ body {
 
 .nav-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr); /* Было 4, стало 5 */
     padding: 0 10px;
 }
 
@@ -1237,3 +1237,4 @@ button:active {
 .btn-copy:active, .btn-support-chat:active {
     transform: translateY(1px);
 }
+

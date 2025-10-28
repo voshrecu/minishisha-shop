@@ -5,6 +5,7 @@ let orders = [];
 let referrals = [];
 let userDiscount = 0;
 let isReferralUser = false;
+let userId = '';
 
 // Настройки бота
 const BOT_CONFIG = {
@@ -68,6 +69,12 @@ function initApp() {
     // Загрузка товаров
     loadProducts();
     updateCartUI();
+    loadReferralUI();
+    
+    // Восстанавливаем текущий заказ если он есть
+    if (orders.length > 0) {
+        currentOrder = orders[orders.length - 1];
+    }
 }
 
 // Работа с localStorage
@@ -77,6 +84,7 @@ function saveToStorage() {
     localStorage.setItem('minishisha_referrals', JSON.stringify(referrals));
     localStorage.setItem('minishisha_userDiscount', userDiscount.toString());
     localStorage.setItem('minishisha_isReferralUser', isReferralUser.toString());
+    localStorage.setItem('minishisha_userId', userId);
 }
 
 function loadFromStorage() {
@@ -86,6 +94,7 @@ function loadFromStorage() {
         referrals = JSON.parse(localStorage.getItem('minishisha_referrals') || '[]');
         userDiscount = parseInt(localStorage.getItem('minishisha_userDiscount') || '0');
         isReferralUser = localStorage.getItem('minishisha_isReferralUser') === 'true';
+        userId = localStorage.getItem('minishisha_userId') || generateUserId();
     } catch (e) {
         console.error('Ошибка загрузки данных:', e);
         cart = [];
@@ -93,7 +102,13 @@ function loadFromStorage() {
         referrals = [];
         userDiscount = 0;
         isReferralUser = false;
+        userId = generateUserId();
     }
+}
+
+// Генерация ID пользователя
+function generateUserId() {
+    return 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
 }
 
 // Проверка возраста
@@ -398,7 +413,8 @@ function processOrderForm(form) {
         shaftColor: formData.get('shaftColor') || 'Не выбран',
         comment: formData.get('comment').trim(),
         cart: [...cart],
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        referrerId: getReferrerIdFromStorage() // Добавляем ID реферера в заказ
     };
     
     // Валидация
@@ -430,11 +446,17 @@ function createOrder(orderData) {
         date: new Date().toLocaleDateString('ru-RU'),
         time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
         isReferralOrder: isReferralUser,
-        userDiscount: userDiscount
+        userDiscount: userDiscount,
+        userId: userId // Добавляем ID пользователя
     };
     
     orders.push(order);
     currentOrder = order;
+    
+    // Если это реферальный заказ, начисляем бонус рефереру
+    if (orderData.referrerId && orderData.referrerId !== userId) {
+        applyReferrerBonus(orderData.referrerId);
+    }
     
     saveToStorage();
     showPaymentScreen(orderId, prepayment);
@@ -444,11 +466,31 @@ function createOrder(orderData) {
 function showPaymentScreen(orderId, amount) {
     const orderIdElement = document.getElementById('orderId');
     const paymentAmountElement = document.getElementById('paymentAmount');
+    const prepaymentAmountElement = document.getElementById('prepaymentAmount');
     
     if (orderIdElement) orderIdElement.textContent = orderId;
     if (paymentAmountElement) paymentAmountElement.textContent = `${amount}₽`;
+    if (prepaymentAmountElement) prepaymentAmountElement.textContent = `${amount}₽`;
     
     showScreen('payment');
+}
+
+// Функция для обновления статуса заказа
+function updateOrderStatus(orderId, status) {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+        order.status = status;
+        order.updatedAt = new Date().toISOString();
+        saveToStorage();
+        
+        // Обновляем UI если находимся на экране заказов
+        if (document.getElementById('orders').classList.contains('active')) {
+            loadOrdersUI();
+        }
+        
+        return true;
+    }
+    return false;
 }
 
 // ОБНОВЛЕННАЯ ФУНКЦИЯ ОПЛАТЫ С ВИЗУАЛЬНЫМ ПОДТВЕРЖДЕНИЕМ
@@ -464,11 +506,7 @@ async function confirmPayment() {
     try {
         if (currentOrder) {
             // Обновляем статус заказа
-            const order = orders.find(o => o.id === currentOrder.id);
-            if (order) {
-                order.status = 'paid';
-                saveToStorage();
-            }
+            updateOrderStatus(currentOrder.id, 'paid');
             
             // Отправляем заказ администратору
             const sendResult = await sendOrderToAdmin(currentOrder);
@@ -593,8 +631,98 @@ function closeSuccessAnimation() {
     }
 }
 
-// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ (БЕЗ КНОПОК)
+// Улучшенная функция связи с менеджером с отслеживанием
+function openManagerChat(withPayment = false) {
+    let message;
+    
+    if (withPayment && currentOrder) {
+        message = `Здравствуйте! По заказу #${currentOrder.id}. Прикладываю скриншот оплаты. Сумма: ${currentOrder.prepayment}₽`;
+        
+        // Сразу отмечаем заказ как "ожидает подтверждения"
+        updateOrderStatus(currentOrder.id, 'pending_confirmation');
+        showNotification('📞 Заказ переведен в статус "Ожидает подтверждения". Менеджер проверит оплату.', 'info');
+        
+    } else if (currentOrder) {
+        message = `Здравствуйте! У меня вопрос по заказу #${currentOrder.id}`;
+    } else {
+        message = `Здравствуйте! У меня вопрос по заказу из MiniShisha`;
+    }
+    
+    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(message)}`;
+    
+    // Открываем в новом окне
+    window.open(telegramUrl, '_blank');
+    
+    // Если это подтверждение оплаты, показываем дополнительную информацию
+    if (withPayment) {
+        showPaymentInstructions();
+    }
+}
+
+// Альтернативная функция для подтверждения оплаты через менеджера
+function confirmPaymentViaManager() {
+    if (!currentOrder) {
+        showNotification('❌ Нет активного заказа', 'error');
+        return;
+    }
+    
+    openManagerChat(true); // true - указывает что это подтверждение оплаты
+}
+
+// Функция для показа инструкций после отправки скриншота
+function showPaymentInstructions() {
+    const instructions = `
+        <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 15px;">📤</div>
+            <h3 style="margin-bottom: 10px; color: var(--text-primary);">Скриншот отправлен!</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                Менеджер проверит оплату в течение 15 минут и обновит статус заказа.
+            </p>
+            <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <p style="margin: 5px 0; font-size: 14px;">🕒 <strong>Статус заказа:</strong> Ожидает подтверждения</p>
+                <p style="margin: 5px 0; font-size: 14px;">💬 <strong>Вы получите уведомление</strong> когда менеджер подтвердит оплату</p>
+                <p style="margin: 5px 0; font-size: 14px;">📱 <strong>Можете закрыть эту страницу</strong> - статус сохранится</p>
+            </div>
+            <button onclick="showScreen('orders')" style="
+                background: var(--gradient);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 10px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 14px;
+                margin: 5px;
+            ">
+                📋 Посмотреть заказы
+            </button>
+            <button onclick="showScreen('catalog')" style="
+                background: var(--surface-light);
+                color: var(--text-primary);
+                border: 1px solid var(--border);
+                padding: 12px 24px;
+                border-radius: 10px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 14px;
+                margin: 5px;
+            ">
+                🛍️ Продолжить покупки
+            </button>
+        </div>
+    `;
+    
+    // Заменяем содержимое экрана оплаты
+    const paymentScreen = document.getElementById('payment');
+    if (paymentScreen) {
+        paymentScreen.innerHTML = instructions;
+    }
+}
+
+// ОТПРАВКА ЗАКАЗА АДМИНИСТРАТОРУ С РЕФЕРАЛЬНОЙ ИНФОРМАЦИЕЙ
 async function sendOrderToAdmin(orderData) {
+    const referrerInfo = orderData.referrerId ? `\n🎯 <b>Реферальный заказ от пользователя:</b> ${orderData.referrerId}` : '';
+    
     const message = `
 🆕 <b>НОВЫЙ ЗАКАЗ #${orderData.id}</b>
 
@@ -616,8 +744,10 @@ ${orderData.cart.map(item =>
 ${orderData.comment ? `💬 <b>Комментарий клиента:</b>\n${orderData.comment}` : ''}
 
 ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (скидка ${orderData.userDiscount}%)` : ''}
+${referrerInfo}
 
 ⏰ <b>Время заказа:</b> ${orderData.date} ${orderData.time}
+👤 <b>ID пользователя:</b> ${orderData.userId}
 
 💬 <b>Клиент должен отправить скриншот оплаты!</b>
     `.trim();
@@ -638,28 +768,12 @@ ${orderData.isReferralOrder ? `🎯 <b>Реферальный заказ</b> (с
         const result = await response.json();
         console.log('Order sent to admin:', result);
         
-        return true; // Всегда возвращаем true для пользователя
+        return true;
         
     } catch (error) {
         console.error('Error sending order to admin:', error);
-        return true; // Всегда возвращаем true для пользователя
+        return true;
     }
-}
-
-// СВЯЗЬ С МЕНЕДЖЕРОМ
-function openManagerChat() {
-    const defaultMessage = `Здравствуйте! У меня вопрос по заказу из MiniShisha`;
-    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(defaultMessage)}`;
-    
-    window.open(telegramUrl, '_blank');
-}
-
-// Улучшенная функция для кнопки "Написать менеджеру" в разделе оплаты
-function openPaymentManagerChat() {
-    const orderInfo = currentOrder ? `По заказу #${currentOrder.id}. Прикладываю скриншот оплаты:` : 'По вопросу о заказе';
-    const telegramUrl = `https://t.me/${BOT_CONFIG.managerUsername.replace('@', '')}?text=${encodeURIComponent(orderInfo)}`;
-    
-    window.open(telegramUrl, '_blank');
 }
 
 // Управление заказами
@@ -757,6 +871,7 @@ function loadOrdersUI() {
 function getStatusText(status) {
     const statusMap = {
         'new': '🆕 Ожидает оплаты',
+        'pending_confirmation': '📞 Ожидает подтверждения',
         'paid': '💳 Оплачен',
         'accepted': '✅ Принят',
         'completed': '🚚 Отправлен',
@@ -765,7 +880,7 @@ function getStatusText(status) {
     return statusMap[status] || status;
 }
 
-// РЕФЕРАЛЬНАЯ СИСТЕМА
+// ОБНОВЛЕННАЯ РЕФЕРАЛЬНАЯ СИСТЕМА
 function loadReferralUI() {
     const referralLinkElement = document.getElementById('referralLink');
     const referralCountElement = document.getElementById('referralCount');
@@ -773,17 +888,16 @@ function loadReferralUI() {
     
     if (!referralLinkElement || !referralCountElement || !discountPercentElement) return;
     
-    const userId = generateUserId();
     const referralLink = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
     
     referralLinkElement.value = referralLink;
     
     // Обновляем статистику
-    const userReferrals = referrals.filter(ref => ref.referrerId === userId);
+    const userReferrals = getSuccessfulReferrals();
     referralCountElement.textContent = userReferrals.length;
     
-    // Рассчитываем скидку
-    const discount = Math.min(10 + userReferrals.length * 5, 30);
+    // Рассчитываем скидку на основе успешных рефералов
+    const discount = calculateUserDiscount();
     discountPercentElement.textContent = `${discount}%`;
     
     // Обновляем скидку пользователя
@@ -791,13 +905,17 @@ function loadReferralUI() {
     saveToStorage();
 }
 
-function generateUserId() {
-    let userId = localStorage.getItem('minishisha_userId');
-    if (!userId) {
-        userId = 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('minishisha_userId', userId);
-    }
-    return userId;
+// Получение успешных рефералов (тех, кто совершил заказ)
+function getSuccessfulReferrals() {
+    return referrals.filter(ref => 
+        ref.referrerId === userId && ref.bonusApplied === true
+    );
+}
+
+// Расчет скидки пользователя
+function calculateUserDiscount() {
+    const successfulReferrals = getSuccessfulReferrals();
+    return Math.min(10 + successfulReferrals.length * 5, 30);
 }
 
 function copyReferralLink() {
@@ -817,60 +935,76 @@ function copyReferralLink() {
     });
 }
 
+// Обработка реферальных параметров
 function handleReferralParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const refParam = urlParams.get('ref');
     
-    if (refParam) {
-        const currentUserId = generateUserId();
+    if (refParam && refParam !== userId) {
+        // Сохраняем ID реферера
+        saveReferrerId(refParam);
         
-        if (refParam !== currentUserId) {
-            // Проверяем, не был ли уже применен бонус
-            const existingReferral = referrals.find(ref => 
-                ref.referredId === currentUserId && ref.referrerId === refParam
-            );
+        // Проверяем, не был ли уже применен бонус
+        const existingReferral = referrals.find(ref => 
+            ref.referredId === userId && ref.referrerId === refParam
+        );
+        
+        if (!existingReferral) {
+            // Сохраняем реферала
+            const referral = {
+                id: Date.now(),
+                referrerId: refParam,
+                referredId: userId,
+                date: new Date().toISOString(),
+                bonusApplied: false
+            };
             
-            if (!existingReferral) {
-                // Сохраняем реферала
-                const referral = {
-                    id: Date.now(),
-                    referrerId: refParam,
-                    referredId: currentUserId,
-                    date: new Date().toISOString(),
-                    bonusApplied: false
-                };
-                
-                referrals.push(referral);
-                
-                // Даем скидку новому пользователю
-                isReferralUser = true;
-                userDiscount = 10; // 10% скидка
-                
-                // Начисляем бонус рефереру
-                applyReferrerBonus(refParam);
-                
-                saveToStorage();
-                
-                showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!', 'success');
-            }
+            referrals.push(referral);
+            
+            // Даем скидку новому пользователю
+            isReferralUser = true;
+            userDiscount = 10; // 10% скидка
+            
+            saveToStorage();
+            
+            showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!', 'success');
         }
     }
 }
 
-// Функция для начисления бонуса рефереру
-function applyReferrerBonus(referrerId) {
-    const referrerReferrals = referrals.filter(ref => ref.referrerId === referrerId);
-    
-    // Увеличиваем скидку реферера на 5% за каждого приглашенного (максимум 30%)
-    const newDiscount = Math.min(10 + referrerReferrals.length * 5, 30);
-    
-    // Обновляем скидку реферера
-    updateUserDiscount(referrerId, newDiscount);
+// Сохранение ID реферера
+function saveReferrerId(referrerId) {
+    localStorage.setItem('minishisha_referrerId', referrerId);
 }
 
-function updateUserDiscount(userId, discount) {
-    // В реальном приложении здесь бы сохранялось в базу данных
-    console.log(`Пользователь ${userId} получает скидку ${discount}%`);
+// Получение ID реферера из хранилища
+function getReferrerIdFromStorage() {
+    return localStorage.getItem('minishisha_referrerId');
+}
+
+// Функция для начисления бонуса рефереру
+function applyReferrerBonus(referrerId) {
+    // Находим реферала в списке
+    const referral = referrals.find(ref => 
+        ref.referrerId === referrerId && ref.referredId === userId && !ref.bonusApplied
+    );
+    
+    if (referral) {
+        // Отмечаем, что бонус применен
+        referral.bonusApplied = true;
+        referral.bonusAppliedAt = new Date().toISOString();
+        
+        saveToStorage();
+        
+        // Показываем уведомление пользователю, если это он
+        if (userId === referrerId) {
+            showNotification('🎉 Ваш друг совершил заказ! Ваша скидка увеличена!', 'success');
+            // Обновляем UI реферальной системы
+            loadReferralUI();
+        }
+        
+        console.log(`Бонус применен для реферера: ${referrerId}`);
+    }
 }
 
 // УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ
@@ -922,4 +1056,6 @@ function debugApp() {
     console.log('Current Order:', currentOrder);
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
+    console.log('User ID:', userId);
+    console.log('Referrer ID:', getReferrerIdFromStorage());
 }

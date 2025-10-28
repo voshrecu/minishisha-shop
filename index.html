@@ -180,7 +180,7 @@
 <div id="payment" class="screen">
     <div class="screen-header">
         <h2>Оплата заказа</h2>
-        <p>Переведите предоплату для подтверждения заказа</p>
+        <p>Переведите предоплату и отправьте чек менеджеру</p>
     </div>
     <div class="payment-card">
         <div class="order-info">
@@ -212,30 +212,21 @@
             </div>
             <div class="instruction-item">
                 <span class="instruction-icon">📱</span>
-                <span>После оплаты нажмите "Я оплатил" или отправьте скриншот менеджеру</span>
+                <span>Сделайте скриншот оплаты и нажмите кнопку ниже</span>
             </div>
             <div class="instruction-item">
                 <span class="instruction-icon">⏰</span>
-                <span>Заказ будет обработан в течение 15 минут после подтверждения оплаты</span>
+                <span>Менеджер свяжется с вами в течение 15 минут</span>
             </div>
         </div>
 
         <div class="payment-actions">
-            <button onclick="confirmPayment()" class="btn-payment-confirm">
-                <span class="btn-icon">✅</span>
-                Я оплатил
-            </button>
-            
-            <div style="text-align: center; margin: 15px 0; color: var(--text-secondary); font-size: 14px;">
-                или
-            </div>
-            
-            <button onclick="confirmPaymentViaManager()" class="btn-payment-support">
+            <button onclick="sendReceiptToManager()" class="btn-payment-confirm">
                 <span class="btn-icon">📤</span>
-                Отправить скриншот менеджеру
+                Отправить чек менеджеру
             </button>
             
-            <button onclick="openManagerChat()" class="btn-payment-support" style="background: var(--surface-light); color: var(--text-primary);">
+            <button onclick="openManagerChat()" class="btn-payment-support" style="background: var(--surface-light); color: var(--text-primary); margin-top: 10px;">
                 <span class="btn-icon">💬</span>
                 Задать вопрос менеджеру
             </button>
@@ -249,11 +240,10 @@
         <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; padding: 15px; margin-top: 20px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <span style="font-size: 18px;">💡</span>
-                <strong style="color: var(--text-primary);">Важно!</strong>
+                <strong style="color: var(--text-primary);">Как это работает?</strong>
             </div>
             <p style="color: var(--text-secondary); font-size: 13px; margin: 0; line-height: 1.4;">
-                После подтверждения оплаты администратором, статус заказа автоматически обновится. 
-                Вы можете закрыть эту страницу и проверить статус в разделе "Заказы".
+                1. Оплатите предоплату → 2. Нажмите "Отправить чек менеджеру" → 3. Менеджер получит уведомление и свяжется с вами для подтверждения и отправки заказа
             </p>
         </div>
     </div>
@@ -389,4 +379,5 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 

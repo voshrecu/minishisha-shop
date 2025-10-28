@@ -6,19 +6,6 @@ let referrals = [];
 let userDiscount = 0;
 let isReferralUser = false;
 
-// Slot Machine System
-const slotPrizes = [
-    { type: 'discount', value: 5, text: '5% СКИДКА', chance: 25 },
-    { type: 'discount', value: 3, text: '3% СКИДКА', chance: 35 },
-    { type: 'discount', value: 1, text: '1% СКИДКА', chance: 30 },
-    { type: 'spin', value: 1, text: 'ДОП. СПИН', chance: 8 },
-    { type: 'nothing', value: 0, text: 'ПОВЕЗЕТ В СЛЕДУЮЩИЙ РАЗ', chance: 2 }
-];
-
-let userSpins = 1;
-let currentDiscount = 0;
-let userInvitations = [];
-
 // Настройки бота
 const BOT_CONFIG = {
     token: '8490335749:AAEKfRAaNKbnGNuEIN2M4rNVGb_BwH07nXk',
@@ -61,7 +48,6 @@ const products = [
 function initApp() {
     loadFromStorage();
     setupEventListeners();
-    initSlotMachine();
     
     // Инициализация Telegram Web App
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
@@ -82,198 +68,6 @@ function initApp() {
     // Загрузка товаров
     loadProducts();
     updateCartUI();
-}
-
-// Slot Machine Functions
-function initSlotMachine() {
-    if (!localStorage.getItem('minishisha_slotShown')) {
-        setTimeout(showSlotMachine, 1500);
-        localStorage.setItem('minishisha_slotShown', 'true');
-    }
-    loadInvitationsFromStorage();
-}
-
-function loadInvitationsFromStorage() {
-    const saved = localStorage.getItem('minishisha_invitations');
-    if (saved) userInvitations = JSON.parse(saved);
-}
-
-function saveInvitationsToStorage() {
-    localStorage.setItem('minishisha_invitations', JSON.stringify(userInvitations));
-}
-
-function canInviteMore() {
-    const today = new Date().toDateString();
-    const todayInvites = userInvitations.filter(inv => 
-        new Date(inv.date).toDateString() === today
-    ).length;
-    
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const weekInvites = userInvitations.filter(inv => 
-        new Date(inv.date) > weekAgo
-    ).length;
-    
-    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const monthInvites = userInvitations.filter(inv => 
-        new Date(inv.date) > monthAgo
-    ).length;
-    
-    return {
-        canInvite: todayInvites < 2 && weekInvites < 5 && monthInvites < 15,
-        today: todayInvites,
-        todayLeft: 2 - todayInvites,
-        week: weekInvites,
-        weekLeft: 5 - weekInvites,
-        month: monthInvites,
-        monthLeft: 15 - monthInvites
-    };
-}
-
-function addInvitation(friendId) {
-    const inviteCheck = canInviteMore();
-    
-    if (!inviteCheck.canInvite) {
-        return { success: false, reason: 'limit_reached' };
-    }
-    
-    const alreadyInvited = userInvitations.some(inv => inv.friendId === friendId);
-    if (alreadyInvited) {
-        return { success: false, reason: 'already_invited' };
-    }
-    
-    userInvitations.push({
-        friendId,
-        date: new Date().toISOString()
-    });
-    
-    userSpins += 2;
-    updateSpinsDisplay();
-    saveInvitationsToStorage();
-    
-    return { success: true, spins: 2, limits: inviteCheck };
-}
-
-function updateSpinsDisplay() {
-    const spinCount = document.getElementById('spinCount');
-    if (spinCount) spinCount.textContent = userSpins;
-    
-    const spinBtn = document.getElementById('spinButton');
-    if (spinBtn) {
-        spinBtn.disabled = userSpins <= 0;
-        spinBtn.textContent = userSpins > 0 ? 
-            `🎯 КРУТИТЬ (${userSpins})` : '❌ НЕТ СПИНОВ';
-    }
-}
-
-function showSlotMachine() {
-    document.getElementById('slotPopup').classList.remove('hidden');
-    updateSpinsDisplay();
-    updateLimitsDisplay();
-}
-
-function closeSlotMachine() {
-    document.getElementById('slotPopup').classList.add('hidden');
-}
-
-function updateLimitsDisplay() {
-    const limits = canInviteMore();
-    const limitsElement = document.getElementById('inviteLimits');
-    if (limitsElement) {
-        limitsElement.innerHTML = `
-            <div>📅 Сегодня: ${limits.today}/2</div>
-            <div>📅 Неделя: ${limits.week}/5</div>
-            <div>📅 Месяц: ${limits.month}/15</div>
-        `;
-    }
-}
-
-function spinSlotMachine() {
-    if (userSpins <= 0) {
-        showNotification('❌ Нет спинов! Пригласите друга или сделайте заказ');
-        return;
-    }
-    
-    userSpins--;
-    updateSpinsDisplay();
-    
-    const reels = document.querySelectorAll('.reel');
-    reels.forEach(reel => {
-        reel.style.animation = 'spin 0.5s ease-in-out';
-    });
-    
-    setTimeout(() => {
-        const prize = getRandomPrize();
-        showPrizeResult(prize);
-        
-        reels.forEach(reel => {
-            reel.style.animation = '';
-        });
-    }, 1500);
-}
-
-function getRandomPrize() {
-    const random = Math.random() * 100;
-    let accumulatedChance = 0;
-    
-    for (const prize of slotPrizes) {
-        accumulatedChance += prize.chance;
-        if (random <= accumulatedChance) {
-            return prize;
-        }
-    }
-    return slotPrizes[0];
-}
-
-function showPrizeResult(prize) {
-    if (prize.type === 'discount') {
-        currentDiscount = prize.value;
-        showNotification(`🎉 Вы выиграли ${prize.value}% скидку!`);
-        applyDiscount(prize.value);
-    } else if (prize.type === 'spin') {
-        userSpins += prize.value;
-        updateSpinsDisplay();
-        showNotification(`🎁 +${prize.value} дополнительный спин!`);
-    } else {
-        showNotification('😔 Повезет в следующий раз!');
-    }
-}
-
-function applyDiscount(discount) {
-    userDiscount = discount;
-    isReferralUser = true;
-    saveToStorage();
-    
-    const discountElement = document.getElementById('currentDiscount');
-    if (discountElement) {
-        discountElement.textContent = `${discount}%`;
-        discountElement.style.display = 'block';
-    }
-}
-
-function shareForSpin() {
-    userSpins += 1;
-    updateSpinsDisplay();
-    showNotification('📤 Поделились! +1 спин');
-}
-
-function inviteFriend() {
-    const friendId = 'friend_' + Date.now();
-    const result = addInvitation(friendId);
-    
-    if (result.success) {
-        showNotification(`👥 Пригласили друга! +2 спина`);
-        updateLimitsDisplay();
-    } else {
-        showNotification('❌ Лимит приглашений исчерпан');
-    }
-}
-
-function orderForSpins() {
-    userSpins += 2;
-    updateSpinsDisplay();
-    showNotification('🛒 Заказ оформлен! +2 спина');
-    closeSlotMachine();
-    showScreen('catalog');
 }
 
 // Работа с localStorage
@@ -329,24 +123,29 @@ function showMainApp() {
 function showScreen(screenId) {
     console.log('Переход на экран:', screenId);
     
+    // Скрываем все экраны
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.remove('active');
     });
     
+    // Убираем активный класс со всех кнопок навигации
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
     
+    // Показываем выбранный экран
     const targetScreen = document.getElementById(screenId);
     if (targetScreen) {
         targetScreen.classList.add('active');
     }
     
+    // Активируем соответствующую кнопку навигации
     const navButton = document.querySelector(`.nav-item[data-screen="${screenId}"]`);
     if (navButton) {
         navButton.classList.add('active');
     }
     
+    // Обновляем данные для конкретных экранов
     switch(screenId) {
         case 'cart':
             updateCartUI();
@@ -368,8 +167,10 @@ function loadProducts() {
         const productCard = document.createElement('div');
         productCard.className = 'product-card';
         
+        // Бейдж для первого товара
         const badge = index === 0 ? '<div class="product-badge">🔥 Хит продаж</div>' : '';
         
+        // Характеристики
         const specsHTML = product.specs ? `
             <div class="product-specs">
                 <div class="specs-grid">
@@ -383,6 +184,7 @@ function loadProducts() {
             </div>
         ` : '';
         
+        // Цвета
         const colorsHTML = product.colors ? `
             <div class="product-colors">
                 ${product.colors.map(color => `
@@ -480,9 +282,11 @@ function updateCartUI() {
     
     if (!cartItems || !totalPrice || !cartCount) return;
     
+    // Обновляем счетчик в навигации
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
     cartCount.textContent = totalItems;
     
+    // Очищаем список товаров
     cartItems.innerHTML = '';
     
     if (cart.length === 0) {
@@ -500,6 +304,7 @@ function updateCartUI() {
         return;
     }
     
+    // Отображаем товары в корзине
     const prices = calculateTotalPrice();
     
     cart.forEach(item => {
@@ -527,6 +332,7 @@ function updateCartUI() {
         cartItems.appendChild(cartItem);
     });
     
+    // Добавляем блок с информацией о скидке
     if (prices.discount > 0) {
         const discountInfo = document.createElement('div');
         discountInfo.className = 'discount-info';
@@ -550,6 +356,7 @@ function checkout() {
         return;
     }
     
+    // Проверяем, что есть и шахта и колба
     const hasShaft = cart.some(item => item.id === 'shaft');
     const hasBowl = cart.some(item => item.id === 'bowl');
     
@@ -585,6 +392,7 @@ function processOrderForm(form) {
         timestamp: Date.now()
     };
     
+    // Валидация
     if (!orderData.name || !orderData.telegram || !orderData.phone || !orderData.address || !orderData.shaftColor) {
         showNotification('❌ Заполните все обязательные поля!');
         return;
@@ -622,9 +430,6 @@ function createOrder(orderData) {
     saveToStorage();
     showPaymentScreen(orderId, prepayment);
     showNotification('✅ Заказ создан! Перейдите к оплате.');
-    
-    // Даем спины за заказ
-    orderForSpins();
 }
 
 function showPaymentScreen(orderId, amount) {
@@ -642,36 +447,44 @@ async function confirmPayment() {
     const confirmBtn = document.querySelector('.btn-payment-confirm');
     const originalText = confirmBtn.innerHTML;
     
+    // Блокируем кнопку и показываем загрузку
     confirmBtn.disabled = true;
     confirmBtn.innerHTML = '<span class="btn-icon">⏳</span> Подтверждаем...';
     confirmBtn.style.opacity = '0.7';
     
     try {
         if (currentOrder) {
+            // Обновляем статус заказа
             const order = orders.find(o => o.id === currentOrder.id);
             if (order) {
                 order.status = 'paid';
                 saveToStorage();
             }
             
+            // Отправляем заказ администратору
             const sendResult = await sendOrderToAdmin(currentOrder);
             
+            // Показываем анимацию успеха
             showPaymentSuccessAnimation();
             
+            // Очищаем корзину
             cart = [];
             
+            // Сбрасываем реферальную скидку после первого заказа
             if (isReferralUser) {
                 isReferralUser = false;
                 userDiscount = 0;
                 saveToStorage();
             }
             
+            // Обновляем интерфейс
             updateCartUI();
             
         } else {
             throw new Error('Нет активного заказа');
         }
     } catch (error) {
+        // Восстанавливаем кнопку при ошибке
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = originalText;
         confirmBtn.style.opacity = '1';
@@ -684,6 +497,7 @@ async function confirmPayment() {
 function showPaymentSuccessAnimation() {
     const paymentScreen = document.getElementById('payment');
     
+    // Создаем элемент для анимации
     const successOverlay = document.createElement('div');
     successOverlay.style.cssText = `
         position: fixed;
@@ -727,6 +541,7 @@ function showPaymentSuccessAnimation() {
         </button>
     `;
     
+    // Добавляем стили для анимации
     const style = document.createElement('style');
     style.textContent = `
         @keyframes bounce {
@@ -742,6 +557,7 @@ function showPaymentSuccessAnimation() {
     
     document.body.appendChild(successOverlay);
     
+    // Добавляем hover эффект для кнопки
     const button = successOverlay.querySelector('button');
     button.addEventListener('mouseover', function() {
         this.style.transform = 'scale(1.05)';
@@ -759,6 +575,7 @@ function closeSuccessAnimation() {
             overlay.remove();
             showScreen('catalog');
             
+            // Добавляем анимацию успеха на главном экране
             document.querySelector('.app-main').classList.add('success-animation');
             setTimeout(() => {
                 document.querySelector('.app-main').classList.remove('success-animation');
@@ -932,23 +749,51 @@ function getStatusText(status) {
 }
 
 // РЕФЕРАЛЬНАЯ СИСТЕМА
-function loadReferralUI() {
-    const referralLinkElement = document.getElementById('referralLink');
-    const referralCountElement = document.getElementById('referralCount');
-    const discountPercentElement = document.getElementById('discountPercent');
+function handleReferralParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
     
-    if (!referralLinkElement || !referralCountElement || !discountPercentElement) return;
+    console.log('🔍 Проверка реферальных параметров:', refParam);
     
-    const userId = generateUserId();
-    const referralLink = `${window.location.origin}${window.location.pathname}?ref=${userId}`;
-    
-    referralLinkElement.value = referralLink;
-    
-    const userReferrals = referrals.filter(ref => ref.referrerId === userId);
-    referralCountElement.textContent = userReferrals.length;
-    
-    const discount = Math.min(10 + userReferrals.length * 5, 30);
-    discountPercentElement.textContent = `${discount}%`;
+    if (refParam) {
+        const currentUserId = generateUserId();
+        
+        // Не даем самому себе бонус
+        if (refParam === currentUserId) {
+            console.log('⚠️ Пользователь перешел по своей же ссылке');
+            return;
+        }
+        
+        // Проверяем, не был ли уже применен бонус
+        const existingReferral = referrals.find(ref => 
+            ref.referredId === currentUserId
+        );
+        
+        if (!existingReferral) {
+            console.log('🎯 Новый реферал обнаружен!');
+            
+            // Сохраняем реферала
+            const referral = {
+                id: Date.now(),
+                referrerId: refParam,
+                referredId: currentUserId,
+                date: new Date().toISOString(),
+                bonusApplied: false
+            };
+            
+            referrals.push(referral);
+            
+            // Даем скидку новому пользователю
+            isReferralUser = true;
+            userDiscount = 10; // 10% скидка
+            
+            saveToStorage();
+            
+            showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!');
+        } else {
+            console.log('⚠️ Бонус уже был применен ранее');
+        }
+    }
 }
 
 function generateUserId() {
@@ -960,70 +805,12 @@ function generateUserId() {
     return userId;
 }
 
-function copyReferralLink() {
-    const linkInput = document.getElementById('referralLink');
-    if (!linkInput) return;
-    
-    linkInput.select();
-    linkInput.setSelectionRange(0, 99999);
-    
-    navigator.clipboard.writeText(linkInput.value).then(() => {
-        showNotification('✅ Ссылка скопирована! Делитесь с друзьями!');
-    }).catch(() => {
-        linkInput.select();
-        document.execCommand('copy');
-        showNotification('✅ Ссылка скопирована!');
-    });
-}
-
-function handleReferralParams() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refParam = urlParams.get('ref');
-    
-    console.log('🔍 Проверка реферальных параметров:', refParam);
-    
-    if (refParam) {
-        const currentUserId = generateUserId();
-        
-        if (refParam === currentUserId) {
-            console.log('⚠️ Пользователь перешел по своей же ссылке');
-            return;
-        }
-        
-        const existingReferral = referrals.find(ref => 
-            ref.referredId === currentUserId
-        );
-        
-        if (!existingReferral) {
-            console.log('🎯 Новый реферал обнаружен!');
-            
-            const referral = {
-                id: Date.now(),
-                referrerId: refParam,
-                referredId: currentUserId,
-                date: new Date().toISOString(),
-                bonusApplied: false
-            };
-            
-            referrals.push(referral);
-            
-            isReferralUser = true;
-            userDiscount = 10;
-            
-            saveToStorage();
-            
-            showNotification('🎉 Вы перешли по реферальной ссылке! Получите скидку 10% на первый заказ!');
-        } else {
-            console.log('⚠️ Бонус уже был применен ранее');
-        }
-    }
-}
-
 // Вспомогательные функции
 function showNotification(message, duration = 3000) {
     if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
         Telegram.WebApp.showAlert(message);
     } else {
+        // Создаем красивый toast вместо alert
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed;
@@ -1046,6 +833,7 @@ function showNotification(message, duration = 3000) {
         toast.innerHTML = message.replace(/\n/g, '<br>');
         document.body.appendChild(toast);
         
+        // Добавляем стили для анимации
         if (!document.querySelector('#toast-styles')) {
             const style = document.createElement('style');
             style.id = 'toast-styles';
@@ -1081,6 +869,4 @@ function debugApp() {
     console.log('Current Order:', currentOrder);
     console.log('User Discount:', userDiscount);
     console.log('Is Referral User:', isReferralUser);
-    console.log('User Spins:', userSpins);
-    console.log('User Invitations:', userInvitations);
 }
